@@ -1,4 +1,4 @@
 .env
 node_modules/
-dashboard/data.json
+dashboard/runs.json
 .claude/settings.local.json

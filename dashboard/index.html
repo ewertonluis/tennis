@@ -24,7 +24,6 @@
     --chalk-line: rgba(244, 247, 245, 0.28);
     --ball: #d4e83b;
     --ball-ink: #1a2a0b;
-    --ball-soft: #eef5bf;
     --amber: #b86e0f;
     --amber-soft: #fbe8c9;
     --alert: #c23b27;
@@ -50,7 +49,6 @@
       --chalk-line: rgba(238, 244, 241, 0.2);
       --ball: #d4e83b;
       --ball-ink: #17240a;
-      --ball-soft: #2c3a17;
       --amber: #f0b050;
       --amber-soft: #3a2a12;
       --alert: #ff7d66;
@@ -73,7 +71,6 @@
     --chalk-line: rgba(238, 244, 241, 0.2);
     --ball: #d4e83b;
     --ball-ink: #17240a;
-    --ball-soft: #2c3a17;
     --amber: #f0b050;
     --amber-soft: #3a2a12;
     --alert: #ff7d66;
@@ -92,7 +89,8 @@
     font: 15px/1.5 var(--body);
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 20px 64px; display: grid; gap: 28px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 20px 64px; }
+  .stack { display: grid; gap: 28px; }
   a { color: inherit; }
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
@@ -106,18 +104,13 @@
   /* Header */
   header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
   .brand { display: grid; gap: 6px; }
-  h1 {
-    margin: 0;
-    font: 800 34px/1 var(--display);
-    font-stretch: 118%;
-    letter-spacing: -0.01em;
-  }
+  h1 { margin: 0; font: 800 34px/1 var(--display); font-stretch: 118%; letter-spacing: -0.01em; }
   h1 .dot { display: inline-block; width: 0.5em; height: 0.5em; border-radius: 50%; background: var(--ball); margin-left: 4px; vertical-align: 0.08em; box-shadow: inset -3px -2px 0 rgba(0,0,0,.08); }
   .subtitle { color: var(--ink-2); margin: 0; }
-  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; color: var(--ink-2); font-size: 13px; }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; color: var(--ink-2); font-size: 13px; }
   .fresh { display: inline-flex; align-items: center; gap: 6px; }
   .fresh::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
-  .fresh.stale::before { background: var(--amber); }
+  .fresh.loading::before { background: var(--focus); animation: pulse 1.2s ease-in-out infinite; }
   .textbtn { background: none; border: 0; padding: 0; font: inherit; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
   .textbtn:hover { color: var(--ink); }
 
@@ -125,40 +118,35 @@
   .top { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; }
   @media (max-width: 780px) { .top { grid-template-columns: 1fr; } }
   .board {
-    position: relative;
-    overflow: hidden;
-    background: var(--court);
-    color: var(--court-ink);
-    border-radius: 14px;
-    padding: 24px 26px 22px;
-    display: grid;
-    gap: 18px;
-    isolation: isolate;
+    position: relative; overflow: hidden; isolation: isolate;
+    background: var(--court); color: var(--court-ink);
+    border-radius: 14px; padding: 24px 26px 22px;
+    display: grid; gap: 18px; align-content: start;
   }
   /* Court outline drawn behind the scoreboard */
   .board::before { content: ""; position: absolute; z-index: -1; pointer-events: none; inset: 14px; border: 2px solid var(--chalk-line); border-radius: 3px; }
   .board .label { color: rgba(238, 244, 241, 0.7); }
   .board h2 { margin: 0; font: 700 22px/1.2 var(--display); font-stretch: 105%; text-wrap: balance; }
+  .board p { margin: 0; }
   .clock { display: flex; flex-wrap: wrap; gap: 8px; }
-  .unit {
-    display: grid; justify-items: center; gap: 6px;
-    min-width: 68px; padding: 10px 8px 8px;
-    background: rgba(5, 15, 25, 0.35);
-    border-radius: 8px;
-  }
+  .unit { display: grid; justify-items: center; gap: 6px; min-width: 68px; padding: 10px 8px 8px; background: rgba(5, 15, 25, 0.35); border-radius: 8px; }
   .unit b { font: 600 38px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--ball); }
   .unit span { font: 600 10px/1 var(--body); letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.7; }
   .steps { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; margin: 0; padding: 0; list-style: none; }
   .steps li { display: flex; gap: 8px; align-items: baseline; }
   .steps .mono { color: var(--ball); }
+  .board .fineprint { font-size: 12.5px; opacity: 0.75; }
 
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; display: grid; gap: 14px; align-content: start; }
   .next-date { font: 700 30px/1.05 var(--display); font-stretch: 110%; margin: 0; }
   .facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 14px; }
   .facts dt { color: var(--ink-3); }
   .facts dd { margin: 0; }
+
   .meter { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
-  .meter i { display: block; height: 100%; background: var(--ink-2); border-radius: 3px; }
+  .meter i { display: block; height: 100%; background: var(--ok); border-radius: 3px; }
+  .meter.busy i { background: var(--amber); }
+  .meter.full i { background: var(--alert); }
 
   .alert {
     display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline;
@@ -171,27 +159,39 @@
   section { display: grid; gap: 14px; }
   .section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
   h3 { margin: 0; font: 700 19px/1.2 var(--display); font-stretch: 108%; }
-  .legend { display: flex; flex-wrap: wrap; gap: 6px; }
-  .weeks { display: grid; gap: 10px; }
-  .week { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; align-items: stretch; }
-  @media (max-width: 620px) { .week { grid-template-columns: 1fr; gap: 6px; } }
-  .week-name { padding-top: 12px; display: grid; gap: 2px; align-content: start; }
+  .hint { color: var(--ink-3); font-size: 13px; margin: 0; }
+  .weeks { display: grid; gap: 12px; }
+  .week { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 12px; align-items: stretch; }
+  @media (max-width: 680px) { .week { grid-template-columns: 1fr; gap: 6px; } }
+  .week-name { padding-top: 12px; display: grid; gap: 4px; align-content: start; }
   .week-name b { font: 600 14px/1.2 var(--body); }
   .week-name span { font-size: 12px; color: var(--ink-3); }
-  .week.past { opacity: 0.72; }
-  .slots { display: grid; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); gap: 10px; }
+  .quota { display: flex; gap: 4px; align-items: center; margin-top: 2px; }
+  .quota i { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--ink-3); }
+  .quota i.on { background: var(--ball); border-color: color-mix(in srgb, var(--ball) 60%, var(--ink)); }
+  .quota small { font-size: 12px; color: var(--ink-2); margin-left: 4px; }
+  .slots { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 980px) { .slots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 420px) { .slots { grid-template-columns: 1fr; } }
   .slot {
     background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
-    padding: 12px 14px; display: grid; gap: 8px; align-content: start; min-height: 104px;
+    padding: 12px 14px; display: grid; gap: 9px; align-content: start; min-height: 132px;
   }
-  .slot.empty { background: transparent; border-style: dashed; color: var(--ink-3); font-size: 13px; place-content: center; text-align: center; }
+  .slot.empty { background: transparent; border-style: dashed; color: var(--ink-3); font-size: 13px; place-content: center; text-align: center; min-height: 60px; }
+  .slot.past { opacity: 0.62; }
   .slot.is-booked { border-color: color-mix(in srgb, var(--ball) 70%, var(--line)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ball) 45%, transparent); }
-  .slot.is-open { border-color: var(--alert); }
+  .slot.is-waitlist { border-color: color-mix(in srgb, var(--amber) 60%, var(--line)); }
   .slot-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
   .slot-day { font: 700 17px/1.1 var(--display); font-stretch: 105%; }
   .slot-time { font: 500 13px/1 var(--mono); color: var(--ink-2); }
-  .slot-note { font-size: 12.5px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  .slot-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .tag { font: 600 10.5px/1 var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); border: 1px solid var(--line); border-radius: 4px; padding: 3px 5px; }
+  .spots { display: grid; gap: 5px; }
+  .spots-text { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+  .spots-text b { font-weight: 600; color: var(--ink); }
+  .spots-text .full { color: var(--alert); font-weight: 600; }
+  .slot-note { font-size: 12.5px; color: var(--ink-2); margin: 0; }
+  .slot-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: auto; }
 
   .pill {
     display: inline-flex; align-items: center; gap: 6px; width: fit-content;
@@ -202,14 +202,26 @@
   .pill.booked { background: var(--ball); color: var(--ball-ink); }
   .pill.booked::before { background: var(--ball-ink); }
   .pill.waitlist { background: var(--amber-soft); color: var(--amber); }
-  .pill.open { background: var(--alert-soft); color: var(--alert); }
+  .pill.missed { background: var(--alert-soft); color: var(--alert); }
+  .pill.available { background: transparent; color: var(--ok); box-shadow: inset 0 0 0 1.5px currentColor; }
   .pill.upcoming { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink-2); }
-  .pill.unpublished { background: transparent; color: var(--ink-3); box-shadow: inset 0 0 0 1px var(--line); }
+  .pill.notopen, .pill.unpublished { background: transparent; color: var(--ink-3); box-shadow: inset 0 0 0 1px var(--line); }
   .pill.unpublished::before { background: transparent; border: 1.5px dashed currentColor; width: 5px; height: 5px; }
   .pill.played { background: var(--surface-2); color: var(--ink-2); }
   .pill.skipped, .pill.cancelled { background: transparent; color: var(--ink-3); padding-left: 0; }
   .pill.skipped::before, .pill.cancelled::before { display: none; }
-  .pill.cancelled { text-decoration: line-through; }
+
+  .btn {
+    font: 600 14px/1 var(--body); padding: 9px 14px; border-radius: 8px; border: 0; cursor: pointer;
+    background: var(--court); color: var(--court-ink);
+  }
+  .btn:hover:not(:disabled) { filter: brightness(1.12); }
+  .btn:disabled { cursor: not-allowed; opacity: 0.45; }
+  .btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+  .btn.ghost:hover:not(:disabled) { box-shadow: inset 0 0 0 1.5px var(--ink-2); filter: none; }
+  .btn.danger { background: var(--alert); color: #fff; }
+  .btn.wide { width: 100%; padding: 12px 16px; font-size: 15px; }
+  .btn.busy { opacity: 0.6; pointer-events: none; }
 
   /* Bot activity */
   .runs { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
@@ -220,94 +232,114 @@
   .run-mark.booked { background: var(--ball); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ball) 35%, transparent); }
   .run-mark.failure { background: var(--alert); }
   .run-mark.running { background: var(--focus); animation: pulse 1.4s ease-in-out infinite; }
-  @media (prefers-reduced-motion: reduce) { .run-mark.running { animation: none; } }
   @keyframes pulse { 50% { opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce) { .run-mark.running, .fresh.loading::before { animation: none; } }
   .run-main { display: grid; gap: 2px; min-width: 0; }
   .run-title { font-weight: 500; overflow-wrap: anywhere; }
   .run-title.failure { color: var(--alert); }
   .run-sub { font-size: 12.5px; color: var(--ink-3); }
   .run a { font-size: 13px; color: var(--ink-2); white-space: nowrap; }
-  .empty-note { color: var(--ink-3); padding: 18px; margin: 0; }
 
-  /* Unlock */
-  .lock { min-height: 70vh; display: grid; place-items: center; }
-  .lock form { width: min(100%, 380px); display: grid; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 26px; }
+  /* Sign in */
+  .lock { min-height: 80vh; display: grid; place-items: center; }
+  .lock form { width: min(100%, 400px); display: grid; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 26px; }
   .lock h1 { font-size: 28px; }
   .lock p { margin: 0; color: var(--ink-2); }
   .field { display: grid; gap: 6px; }
   .field label { font-weight: 600; font-size: 13px; }
-  input[type="password"] {
-    font: 15px var(--mono); padding: 11px 12px; border-radius: 8px; border: 1px solid var(--line);
+  .field input {
+    font: 15px var(--body); padding: 11px 12px; border-radius: 8px; border: 1px solid var(--line);
     background: var(--ground); color: var(--ink); width: 100%;
   }
   .check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--ink-2); }
-  .btn {
-    font: 600 15px var(--body); padding: 11px 16px; border-radius: 8px; border: 0; cursor: pointer;
-    background: var(--court); color: var(--court-ink);
-  }
-  .btn:hover { filter: brightness(1.12); }
   .error { color: var(--alert); font-size: 13px; min-height: 1.2em; }
+
+  .toast {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    max-width: min(560px, calc(100% - 32px));
+    background: var(--ink); color: var(--ground);
+    padding: 12px 16px; border-radius: 10px; font-size: 14px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25); z-index: 10;
+  }
+  .toast.bad { background: var(--alert); color: #fff; }
 </style>
 </head>
 <body>
 <main class="wrap">
   <div class="lock" id="lock" hidden>
-    <form id="unlock-form">
+    <form id="login-form">
       <h1>Court Time<span class="dot"></span></h1>
-      <p>Your booking data is encrypted. Enter the dashboard passphrase to see it.</p>
+      <p>Sign in with your Mouratoglou Country Club account (the one you use on Doinsport).</p>
       <div class="field">
-        <label for="passphrase">Passphrase</label>
-        <input type="password" id="passphrase" autocomplete="current-password" required>
+        <label for="email">Email</label>
+        <input type="email" id="email" autocomplete="username" required>
       </div>
-      <label class="check"><input type="checkbox" id="remember" checked> Remember on this device</label>
-      <button class="btn" type="submit" id="unlock-btn">Unlock</button>
-      <div class="error" id="unlock-error" role="alert"></div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+      </div>
+      <label class="check"><input type="checkbox" id="remember" checked> Keep me signed in on this device</label>
+      <button class="btn wide" type="submit" id="login-btn">Sign in</button>
+      <div class="error" id="login-error" role="alert"></div>
+      <p class="hint">Your password is sent only to the club’s booking system and is never stored.</p>
     </form>
   </div>
 
-  <div id="app" hidden>
-    <div style="display:grid;gap:28px">
-      <header>
-        <div class="brand">
-          <h1>Court Time<span class="dot"></span></h1>
-          <p class="subtitle" id="subtitle"></p>
-        </div>
-        <div class="meta">
-          <span class="fresh" id="fresh"></span>
-          <button class="textbtn" type="button" id="lock-btn">Lock</button>
-        </div>
-      </header>
-
-      <div class="alert" id="alert" hidden></div>
-
-      <div class="top">
-        <div class="board" id="board"></div>
-        <div class="card" id="next-card"></div>
+  <div class="stack" id="app" hidden>
+    <header>
+      <div class="brand">
+        <h1>Court Time<span class="dot"></span></h1>
+        <p class="subtitle">Permanence adultes · Mouratoglou Country Club</p>
       </div>
+      <div class="meta">
+        <span id="who"></span>
+        <span class="fresh" id="fresh"></span>
+        <button class="textbtn" type="button" id="refresh-btn">Refresh</button>
+        <button class="textbtn" type="button" id="logout-btn">Sign out</button>
+      </div>
+    </header>
 
-      <section aria-labelledby="sessions-h">
-        <div class="section-head">
-          <h3 id="sessions-h">Sessions</h3>
-          <div class="legend" id="legend"></div>
-        </div>
-        <div class="weeks" id="weeks"></div>
-      </section>
+    <div class="alert" id="alert" hidden></div>
 
-      <section aria-labelledby="runs-h">
-        <div class="section-head">
-          <h3 id="runs-h">Bot activity</h3>
-          <a class="run-sub" id="actions-link" href="#" target="_blank" rel="noopener">All runs on GitHub</a>
-        </div>
-        <ul class="runs" id="runs"></ul>
-      </section>
+    <div class="top">
+      <div class="board" id="board"></div>
+      <div class="card" id="next-card"></div>
     </div>
+
+    <section aria-labelledby="sessions-h">
+      <div class="section-head">
+        <h3 id="sessions-h">Sessions</h3>
+        <p class="hint">Up to 2 sessions a week. The bot books Monday and Wednesday; cancel one to play another day.</p>
+      </div>
+      <div class="weeks" id="weeks"></div>
+    </section>
+
+    <section aria-labelledby="runs-h" id="runs-section" hidden>
+      <div class="section-head">
+        <h3 id="runs-h">Bot activity</h3>
+        <a class="run-sub" id="actions-link" href="#" target="_blank" rel="noopener">All runs on GitHub</a>
+      </div>
+      <ul class="runs" id="runs"></ul>
+    </section>
   </div>
 </main>
+<div class="toast" id="toast" role="status" hidden></div>
 
 <script>
 (() => {
+  const API = 'https://api-blockout.doinsport.club';
+  const CLUB_ID = '652b9a65-0756-4f08-9b30-e20130aeea42';
+  const WHITE_LABEL_ID = '472ed15e-b862-4ffd-b81e-1fa8a89b6148';
   const TZ = 'Europe/Paris';
-  const STORE_KEY = 'court-time-passphrase';
+  const SESSION_NAME = 'Permanence adultes';
+  // Must match doinsport.mjs defaults and the crons in .github/workflows/book.yml.
+  const BOT = { days: ['Mon', 'Wed'], time: '19:30', openDaysBefore: 8, maxPerWeek: 2, cronsUtc: ['16:20', '17:20'], lookaheadMin: 90 };
+  const WEEKS_SHOWN = 4;
+  const DAY_MS = 864e5;
+  const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const TOKEN_KEY = 'court-time-refresh-token';
+
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, text) => {
     const n = document.createElement(tag);
@@ -315,120 +347,373 @@
     if (text != null) n.textContent = text;
     return n;
   };
+  const iri = (x) => (typeof x === 'string' ? x : x?.['@id']);
+  const members = (d) => (Array.isArray(d) ? d : d?.['hydra:member'] ?? []);
 
-  const STATUS = {
-    booked: 'Booked',
-    waitlist: 'Waiting list',
-    open: 'Open, not booked',
-    upcoming: 'Bot will book',
-    unpublished: 'Not on calendar yet',
-    played: 'Played',
-    skipped: 'Not booked',
-    cancelled: 'You cancelled',
-  };
-
+  // ---- dates (all in Paris time) ----
   const fmt = (d, opts) => new Intl.DateTimeFormat('en-GB', { timeZone: TZ, ...opts }).format(new Date(d));
   const dayDate = (d) => fmt(d, { weekday: 'short', day: 'numeric', month: 'short' });
   const longDay = (d) => fmt(d, { weekday: 'long', day: 'numeric', month: 'long' });
   const hm = (d) => fmt(d, { hour: '2-digit', minute: '2-digit', hour12: false });
   const when = (d) => `${dayDate(d)}, ${hm(d)}`;
+  const weekday = (d) => fmt(d, { weekday: 'short' });
+  const parisDate = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(d));
+  const isoDate = (d) => new Date(d).toISOString().slice(0, 10);
+
+  function weekStart(d) {
+    const date = new Date(`${parisDate(d)}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
+    return isoDate(date);
+  }
+  function parisToUtc(date, time) {
+    const guess = new Date(`${date}T${time}:00Z`);
+    const shown = new Date(`${parisDate(guess)}T${hm(guess)}:00Z`);
+    return new Date(guess.getTime() - (shown - guess));
+  }
+  const addDays = (date, n) => isoDate(new Date(`${date}T12:00:00Z`).getTime() + n * DAY_MS);
 
   function ago(d) {
     const s = Math.round((Date.now() - new Date(d)) / 1000);
-    if (s < 90) return 'just now';
+    if (s < 60) return 'just now';
     const m = Math.round(s / 60);
     if (m < 90) return `${m} min ago`;
-    const h = Math.round(m / 60);
-    if (h < 36) return `${h} h ago`;
-    return `${Math.round(h / 24)} days ago`;
+    return `${Math.round(m / 60)} h ago`;
   }
 
   // ---- storage (best effort) ----
   const store = {
-    get() { try { return localStorage.getItem(STORE_KEY); } catch { return null; } },
-    set(v) { try { localStorage.setItem(STORE_KEY, v); } catch {} },
-    clear() { try { localStorage.removeItem(STORE_KEY); } catch {} },
+    get() { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } },
+    set(v) { try { localStorage.setItem(TOKEN_KEY, v); } catch {} },
+    clear() { try { localStorage.removeItem(TOKEN_KEY); } catch {} },
   };
 
-  // ---- decryption ----
-  const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-  async function decrypt(payload, passphrase) {
-    const enc = new TextEncoder();
-    const baseKey = await crypto.subtle.importKey('raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveKey']);
-    const key = await crypto.subtle.deriveKey(
-      { name: 'PBKDF2', salt: unb64(payload.salt), iterations: payload.iterations, hash: 'SHA-256' },
-      baseKey, { name: 'AES-GCM', length: 256 }, false, ['decrypt'],
-    );
-    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(payload.iv) }, key, unb64(payload.data));
-    return JSON.parse(new TextDecoder().decode(plain));
+  // ---- Doinsport API ----
+  const auth = { token: null, refresh: null, remember: true };
+
+  class ApiError extends Error {
+    constructor(status, message) { super(message); this.status = status; }
   }
 
-  let payload = null;
-  let timer = null;
-
-  async function loadPayload() {
-    const res = await fetch(`data.json?t=${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error('The dashboard data has not been published yet. Run the "Dashboard" workflow on GitHub.');
-    return res.json();
-  }
-
-  async function unlock(passphrase, remember) {
-    payload = payload || await loadPayload();
-    const data = await decrypt(payload, passphrase);
-    if (remember) store.set(passphrase);
-    $('lock').hidden = true;
-    $('app').hidden = false;
-    render(data);
-  }
-
-  function showLock(message) {
-    $('app').hidden = true;
-    $('lock').hidden = false;
-    $('unlock-error').textContent = message || '';
-    $('passphrase').focus();
-  }
-
-  $('unlock-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    $('unlock-btn').disabled = true;
-    $('unlock-error').textContent = '';
-    try {
-      await unlock($('passphrase').value, $('remember').checked);
-    } catch (err) {
-      $('unlock-error').textContent = err.name === 'OperationError'
-        ? 'That passphrase doesn’t match. Check DASHBOARD_PASSPHRASE in your GitHub secrets.'
-        : err.message;
-    } finally {
-      $('unlock-btn').disabled = false;
+  async function raw(method, path, body) {
+    const res = await fetch(path.startsWith('http') ? path : API + path, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/ld+json',
+        'X-Locale': 'en',
+        ...(auth.token ? { Authorization: `Bearer ${auth.token}` } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = text; }
+    if (!res.ok) {
+      const msg = data?.['hydra:description'] || data?.detail || data?.message || `Request failed (${res.status})`;
+      throw new ApiError(res.status, msg);
     }
-  });
+    return data;
+  }
 
-  $('lock-btn').addEventListener('click', () => {
-    store.clear();
-    clearInterval(timer);
-    $('passphrase').value = '';
-    showLock();
-  });
+  function saveTokens(data) {
+    auth.token = data.token;
+    auth.refresh = data.refresh_token || auth.refresh;
+    if (auth.remember && auth.refresh) store.set(auth.refresh);
+  }
+
+  async function refreshToken() {
+    if (!auth.refresh) return false;
+    try {
+      auth.token = null;
+      saveTokens(await raw('POST', '/jwt-token/refresh', { refresh_token: auth.refresh }));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function api(method, path, body) {
+    try {
+      return await raw(method, path, body);
+    } catch (e) {
+      if (e.status === 401 && await refreshToken()) return raw(method, path, body);
+      if (e.status === 401) signOut('Your session expired. Sign in again.');
+      throw e;
+    }
+  }
+
+  async function signIn(email, password) {
+    auth.token = null;
+    saveTokens(await raw('POST', '/client_login_check', {
+      username: email,
+      password,
+      clubWhiteLabel: `/clubs/white-labels/${WHITE_LABEL_ID}`,
+      origin: 'white_label_app',
+    }));
+  }
+
+  // ---- state ----
+  let me = null;
+  let sessions = [];
+  let loadedAt = null;
+  let timer = null;
+  let loading = false;
+
+  async function loadSessions() {
+    const from = weekStart(new Date());
+    const to = addDays(from, WEEKS_SHOWN * 7);
+    const list = [];
+    for (let page = 1; ; page++) {
+      const q = new URLSearchParams({
+        activityType: 'lesson', 'club.id': CLUB_ID, 'startAt[after]': from, 'startAt[before]': to,
+        'order[startAt]': 'asc', itemsPerPage: '200', page: String(page),
+      });
+      const batch = members(await api('GET', `/clubs/bookings?${q}`));
+      list.push(...batch);
+      if (batch.length < 200) break;
+    }
+    const target = list.filter((b) => b.name?.trim() === SESSION_NAME && !b.canceled);
+
+    const withPeople = await Promise.all(target.map(async (b) => {
+      const people = members(await api('GET', `/clubs/bookings/participants?booking.id=${b.id}&itemsPerPage=200`));
+      const mineAll = people.filter((p) => iri(p.user) === me['@id']);
+      const delay = b.startRegistrationDelay || b.registrationTimeBeforeStart;
+      return {
+        id: b.id,
+        iri: b['@id'] || `/clubs/bookings/${b.id}`,
+        start: b.startAt,
+        end: b.endAt,
+        capacity: b.maxParticipantsCountLimit,
+        queueEnabled: b.participantsQueueEnabled !== false,
+        court: b.playgrounds?.map((p) => p.name).join(', ') || null,
+        count: people.filter((p) => !p.canceled && p.confirmed !== false && !p.inQueue).length,
+        queue: people.filter((p) => !p.canceled && p.inQueue).length,
+        mine: mineAll.find((p) => !p.canceled) || mineAll[0] || null,
+        opensAt: new Date(new Date(b.startAt).getTime() - (delay ? delay * 1000 : BOT.openDaysBefore * DAY_MS)).toISOString(),
+        published: true,
+      };
+    }));
+
+    // Bot days the club hasn't put on the calendar yet.
+    const now = Date.now();
+    for (let i = 0; i < WEEKS_SHOWN * 7; i++) {
+      const date = addDays(from, i);
+      const start = parisToUtc(date, BOT.time);
+      if (!BOT.days.includes(weekday(start)) || start < now) continue;
+      if (withPeople.some((s) => parisDate(s.start) === date)) continue;
+      withPeople.push({
+        id: `expected-${date}`, start: start.toISOString(), published: false,
+        opensAt: new Date(start.getTime() - BOT.openDaysBefore * DAY_MS).toISOString(),
+      });
+    }
+    return withPeople.sort((a, b) => a.start.localeCompare(b.start));
+  }
+
+  const isBotSlot = (s) => BOT.days.includes(weekday(s.start)) && hm(s.start) === BOT.time;
+  const activeMine = (s) => s.mine && !s.mine.canceled && !s.mine.inQueue;
+  const bookedInWeek = (key) => sessions.filter((s) => weekStart(s.start) === key && activeMine(s)).length;
+
+  function statusOf(s) {
+    const now = Date.now();
+    if (new Date(s.start) < now) return activeMine(s) ? 'played' : 'skipped';
+    if (s.mine && !s.mine.canceled) return s.mine.inQueue ? 'waitlist' : 'booked';
+    if (s.mine?.canceled) return 'cancelled';
+    if (!s.published) return 'unpublished';
+    if (new Date(s.opensAt) > now) return isBotSlot(s) && bookedInWeek(weekStart(s.start)) < BOT.maxPerWeek ? 'upcoming' : 'notopen';
+    if (isBotSlot(s) && bookedInWeek(weekStart(s.start)) < BOT.maxPerWeek) return 'missed';
+    return 'available';
+  }
+
+  const STATUS_LABEL = {
+    booked: 'Booked', waitlist: 'Waiting list', available: 'Open', missed: 'Open, not booked',
+    upcoming: 'Bot will book', notopen: 'Not open yet', unpublished: 'Not on calendar yet',
+    played: 'Played', skipped: 'Not booked', cancelled: 'You cancelled',
+  };
+
+  // ---- actions ----
+  async function book(s) {
+    const participant = await api('POST', '/clubs/bookings/participants', {
+      booking: s.iri, user: me['@id'], subscriptionCard: null, paymentMethod: 'per_participant', accompanyingParticipants: [],
+    });
+    const cart = await api('POST', '/payments/carts', { items: [{ product: participant['@id'] }] });
+    if (cart.restToPay > 0) return { message: 'Reserved, but it needs payment. Finish it in the club app.', bad: true };
+    if (participant.confirmed === false) {
+      const confirmed = await api('PUT', participant['@id'], { confirmed: true });
+      if (confirmed.confirmed !== true) throw new Error('The club did not confirm the booking.');
+    }
+    return { message: participant.inQueue ? `Added to the waiting list for ${dayDate(s.start)}` : `Booked ${longDay(s.start)}` };
+  }
+
+  async function cancel(s) {
+    await api('PUT', s.mine['@id'] || `/clubs/bookings/participants/${s.mine.id}`, { canceled: true });
+    return { message: `Cancelled ${longDay(s.start)}` };
+  }
+
+  let toastTimer = null;
+  function toast(message, bad = false) {
+    const t = $('toast');
+    t.textContent = message;
+    t.classList.toggle('bad', bad);
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, bad ? 8000 : 4500);
+  }
+
+  async function runAction(button, action, s) {
+    button.classList.add('busy');
+    try {
+      const result = await action(s);
+      toast(result.message, result.bad);
+    } catch (e) {
+      toast(e.message || 'Something went wrong. Try again.', true);
+    } finally {
+      await refresh();
+    }
+  }
+
+  // Cancel asks for a second click so a stray tap doesn't drop a session.
+  function cancelButton(s) {
+    const b = el('button', 'btn ghost', s.mine?.inQueue ? 'Leave waiting list' : 'Cancel');
+    b.type = 'button';
+    let armed = null;
+    b.addEventListener('click', () => {
+      if (!armed) {
+        b.textContent = 'Tap again to confirm';
+        b.className = 'btn danger';
+        armed = setTimeout(() => {
+          armed = null;
+          b.textContent = s.mine?.inQueue ? 'Leave waiting list' : 'Cancel';
+          b.className = 'btn ghost';
+        }, 4000);
+        return;
+      }
+      clearTimeout(armed);
+      runAction(b, cancel, s);
+    });
+    return b;
+  }
 
   // ---- rendering ----
   function pill(status) {
-    return el('span', `pill ${status}`, STATUS[status] || status);
+    return el('span', `pill ${status}`, STATUS_LABEL[status] || status);
   }
 
-  function renderBoard(data) {
+  function spots(s) {
+    const wrap = el('div', 'spots');
+    const text = el('div', 'spots-text');
+    const left = s.capacity - s.count;
+    const taken = el('span');
+    taken.append(el('b', 'mono', `${s.count}/${s.capacity}`), document.createTextNode(' players'));
+    const free = left > 0
+      ? el('span', null, `${left} ${left === 1 ? 'spot' : 'spots'} left`)
+      : el('span', 'full', s.queue ? `Full · ${s.queue} waiting` : 'Full');
+    text.append(taken, free);
+    const meter = el('div', `meter${left <= 0 ? ' full' : s.count / s.capacity >= 0.75 ? ' busy' : ''}`);
+    const bar = el('i');
+    bar.style.width = `${Math.min(100, (s.count / s.capacity) * 100)}%`;
+    meter.append(bar);
+    wrap.append(text, meter);
+    return wrap;
+  }
+
+  function slotTile(s) {
+    const status = statusOf(s);
+    const past = status === 'played' || status === 'skipped';
+    const tile = el('div', `slot is-${status}${past ? ' past' : ''}`);
+
+    const top = el('div', 'slot-top');
+    top.append(el('span', 'slot-day', dayDate(s.start)), el('span', 'slot-time', hm(s.start)));
+    const row = el('div', 'slot-row');
+    row.append(pill(status));
+    if (isBotSlot(s)) row.append(el('span', 'tag', 'Auto'));
+    tile.append(top, row);
+
+    if (s.published && s.capacity && !past) tile.append(spots(s));
+
+    const actions = el('div', 'slot-actions');
+    if (status === 'booked' || status === 'waitlist') {
+      actions.append(cancelButton(s));
+    } else if (['available', 'missed', 'cancelled'].includes(status) && new Date(s.opensAt) <= Date.now()) {
+      const weekFull = bookedInWeek(weekStart(s.start)) >= BOT.maxPerWeek;
+      const full = s.count >= s.capacity;
+      const label = full ? 'Join waiting list' : status === 'cancelled' ? 'Book again' : 'Book';
+      const b = el('button', 'btn', label);
+      b.type = 'button';
+      if (weekFull) {
+        b.disabled = true;
+        tile.append(el('p', 'slot-note', `You have ${BOT.maxPerWeek} sessions this week. Cancel one to book this.`));
+      } else if (full && !s.queueEnabled) {
+        b.disabled = true;
+        b.textContent = 'Full';
+      }
+      b.addEventListener('click', () => runAction(b, book, s));
+      actions.append(b);
+    } else if (status === 'upcoming' || status === 'unpublished' || status === 'notopen') {
+      tile.append(el('p', 'slot-note', `Opens ${when(s.opensAt)}`));
+    }
+    if (actions.childNodes.length) tile.append(actions);
+    return tile;
+  }
+
+  function renderWeeks() {
+    const root = $('weeks');
+    root.replaceChildren();
+    const first = weekStart(new Date());
+    const days = WEEKDAYS.filter((d) => BOT.days.includes(d) || sessions.some((s) => weekday(s.start) === d));
+    const names = ['This week', 'Next week'];
+    for (let w = 0; w < WEEKS_SHOWN; w++) {
+      const key = addDays(first, w * 7);
+      const inWeek = sessions.filter((s) => weekStart(s.start) === key);
+      const row = el('div', 'week');
+      const name = el('div', 'week-name');
+      name.append(
+        el('b', null, names[w] || `In ${w} weeks`),
+        el('span', null, `from ${fmt(`${key}T12:00:00Z`, { day: 'numeric', month: 'short' })}`),
+      );
+      const quota = el('div', 'quota');
+      const booked = bookedInWeek(key);
+      for (let i = 0; i < BOT.maxPerWeek; i++) quota.append(el('i', i < booked ? 'on' : ''));
+      quota.append(el('small', null, `${booked}/${BOT.maxPerWeek}`));
+      quota.setAttribute('aria-label', `${booked} of ${BOT.maxPerWeek} sessions booked this week`);
+      name.append(quota);
+
+      const slots = el('div', 'slots');
+      slots.style.setProperty('--cols', days.length);
+      for (const day of days) {
+        const daySessions = inWeek.filter((s) => weekday(s.start) === day);
+        if (!daySessions.length) {
+          const date = addDays(key, WEEKDAYS.indexOf(day));
+          slots.append(el('div', 'slot empty', `No session ${fmt(`${date}T12:00:00Z`, { weekday: 'short', day: 'numeric' })}`));
+        }
+        for (const s of daySessions) slots.append(slotTile(s));
+      }
+      row.append(name, slots);
+      root.append(row);
+    }
+  }
+
+  function botWakeFor(opensAt) {
+    const day = isoDate(opensAt);
+    return BOT.cronsUtc
+      .map((t) => new Date(`${day}T${t}:00Z`))
+      .filter((w) => w <= opensAt && opensAt - w <= BOT.lookaheadMin * 60000)
+      .sort((a, b) => a - b)[0] || null;
+  }
+
+  function renderBoard() {
     const board = $('board');
     board.replaceChildren();
-    const na = data.nextAction;
-    if (!na) {
-      board.append(el('span', 'label', 'Next bot action'), el('h2', null, 'Nothing to book right now'),
-        el('p', null, 'Every Monday and Wednesday session in the next three weeks is already handled.'));
+    clearInterval(timer);
+    const next = sessions.find((s) => ['upcoming', 'unpublished'].includes(statusOf(s)) && isBotSlot(s)
+      && new Date(s.opensAt) > Date.now() && bookedInWeek(weekStart(s.start)) < BOT.maxPerWeek);
+    board.append(el('span', 'label', 'Next bot action'));
+    if (!next) {
+      board.append(el('h2', null, 'Nothing for the bot to book'),
+        el('p', null, 'Every Monday and Wednesday in the next weeks is booked, cancelled or covered by your weekly limit.'));
       return;
     }
-    const opens = new Date(na.opensAt);
-    board.append(
-      el('span', 'label', 'Next bot action'),
-      el('h2', null, `Book ${longDay(na.sessionStart)} at ${hm(na.sessionStart)}`),
-    );
+    const opens = new Date(next.opensAt);
+    board.append(el('h2', null, `Book ${longDay(next.start)} at ${hm(next.start)}`));
     const clock = el('div', 'clock');
     clock.setAttribute('aria-label', 'Time until registration opens');
     const units = ['days', 'hours', 'min', 'sec'].map((u) => {
@@ -439,125 +724,65 @@
       return b;
     });
     board.append(clock);
-
     const steps = el('ul', 'steps');
-    if (na.botWakeAt) {
+    const wake = botWakeFor(opens);
+    if (wake) {
       const li = el('li');
-      li.append(el('span', null, 'Bot wakes'), el('span', 'mono', `~${hm(na.botWakeAt)}`));
+      li.append(el('span', null, 'Bot wakes'), el('span', 'mono', `~${hm(wake)}`));
       steps.append(li);
     }
     const li2 = el('li');
     li2.append(el('span', null, 'Registration opens'), el('span', 'mono', `${dayDate(opens)} · ${fmt(opens, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}`));
     steps.append(li2);
-    board.append(steps);
+    board.append(steps, el('p', 'fineprint', `It skips the booking if you already have ${BOT.maxPerWeek} sessions that week.`));
 
     const tick = () => {
-      let s = Math.max(0, Math.floor((opens - Date.now()) / 1000));
-      const parts = [Math.floor(s / 86400), Math.floor(s % 86400 / 3600), Math.floor(s % 3600 / 60), s % 60];
-      parts.forEach((v, i) => { units[i].textContent = String(v).padStart(2, '0'); });
+      const s = Math.max(0, Math.floor((opens - Date.now()) / 1000));
+      [Math.floor(s / 86400), Math.floor(s % 86400 / 3600), Math.floor(s % 3600 / 60), s % 60]
+        .forEach((v, i) => { units[i].textContent = String(v).padStart(2, '0'); });
     };
     tick();
-    clearInterval(timer);
     timer = setInterval(tick, 1000);
   }
 
-  function renderNext(data) {
+  function renderNext() {
     const card = $('next-card');
-    card.replaceChildren();
-    const now = Date.now();
-    const next = data.sessions.find((s) => new Date(s.start) > now && ['booked', 'waitlist'].includes(s.status));
-    card.append(el('span', 'label', 'Your next session'));
+    card.replaceChildren(el('span', 'label', 'Your next session'));
+    const next = sessions.find((s) => ['booked', 'waitlist'].includes(statusOf(s)));
     if (!next) {
-      card.append(el('p', 'next-date', 'None booked'), el('p', 'subtitle', 'Upcoming sessions will show here once the bot books them.'));
+      card.append(el('p', 'next-date', 'None booked'), el('p', 'subtitle', 'Book a session below, or let the bot grab Monday and Wednesday.'));
       return;
     }
-    card.append(el('p', 'next-date', longDay(next.start)), pill(next.status));
+    card.append(el('p', 'next-date', longDay(next.start)), pill(statusOf(next)));
     const facts = el('dl', 'facts');
-    const add = (k, v) => { facts.append(el('dt', null, k), el('dd', null, v)); };
+    const add = (k, v) => facts.append(el('dt', null, k), el('dd', null, v));
     add('Time', `${hm(next.start)}${next.end ? `–${hm(next.end)}` : ''}`);
     if (next.court) add('Court', next.court);
-    if (next.count != null && next.capacity) add('Players', `${next.count} of ${next.capacity}`);
     card.append(facts);
-    if (next.count != null && next.capacity) {
-      const meter = el('div', 'meter');
-      const bar = el('i');
-      bar.style.width = `${Math.min(100, (next.count / next.capacity) * 100)}%`;
-      meter.append(bar);
-      meter.setAttribute('role', 'img');
-      meter.setAttribute('aria-label', `${next.count} of ${next.capacity} places taken`);
-      card.append(meter);
+    if (next.capacity) card.append(spots(next));
+  }
+
+  function renderAlert() {
+    const missed = sessions.filter((s) => statusOf(s) === 'missed');
+    const alert = $('alert');
+    alert.hidden = !missed.length;
+    if (missed.length) {
+      alert.replaceChildren(
+        el('strong', null, 'The bot didn’t book:'),
+        el('span', null, `${missed.map((s) => when(s.start)).join(', ')}. Registration is open, so you can book it below.`),
+      );
     }
   }
 
-  // Monday of the Paris week containing d, as YYYY-MM-DD.
-  function weekKey(d) {
-    const local = fmt(d, { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-');
-    const date = new Date(`${local}T12:00:00Z`);
-    const dow = (date.getUTCDay() + 6) % 7;
-    date.setUTCDate(date.getUTCDate() - dow);
-    return date.toISOString().slice(0, 10);
+  function render() {
+    $('fresh').textContent = `Updated ${ago(loadedAt)}`;
+    renderAlert();
+    renderBoard();
+    renderNext();
+    renderWeeks();
   }
 
-  function weekLabel(key) {
-    const diff = Math.round((new Date(`${key}T12:00:00Z`) - new Date(`${weekKey(new Date())}T12:00:00Z`)) / (7 * 864e5));
-    const names = { '-2': 'Two weeks ago', '-1': 'Last week', '0': 'This week', '1': 'Next week' };
-    const range = `from ${fmt(`${key}T12:00:00Z`, { day: 'numeric', month: 'short' })}`;
-    return { title: names[diff] || `In ${diff} weeks`, range, past: diff < 0 };
-  }
-
-  const DAY_INDEX = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
-  const DAY_LONG = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
-
-  function renderSessions(data) {
-    const days = data.target.days;
-    const weeks = new Map();
-    for (const s of data.sessions) {
-      const k = weekKey(s.start);
-      if (!weeks.has(k)) weeks.set(k, []);
-      weeks.get(k).push(s);
-    }
-    const root = $('weeks');
-    root.replaceChildren();
-    for (const [key, list] of [...weeks.entries()].sort()) {
-      const info = weekLabel(key);
-      const row = el('div', `week${info.past ? ' past' : ''}`);
-      const name = el('div', 'week-name');
-      name.append(el('b', null, info.title), el('span', null, info.range));
-      const slots = el('div', 'slots');
-      slots.style.setProperty('--cols', days.length);
-      for (const day of days) {
-        const s = list.find((x) => fmt(x.start, { weekday: 'short' }) === day);
-        if (!s) {
-          const monday = new Date(`${key}T12:00:00Z`);
-          monday.setUTCDate(monday.getUTCDate() + DAY_INDEX[day]);
-          slots.append(el('div', 'slot empty', `No session ${fmt(monday, { weekday: 'short', day: 'numeric', month: 'short' })}`));
-          continue;
-        }
-        slots.append(slotTile(s));
-      }
-      row.append(name, slots);
-      root.append(row);
-    }
-
-    const legend = $('legend');
-    legend.replaceChildren(...['booked', 'upcoming', 'waitlist', 'open'].map(pill));
-  }
-
-  function slotTile(s) {
-    const tile = el('div', `slot is-${s.status}`);
-    const top = el('div', 'slot-top');
-    top.append(el('span', 'slot-day', dayDate(s.start)), el('span', 'slot-time', hm(s.start)));
-    tile.append(top, pill(s.status));
-    const note = el('div', 'slot-note');
-    if (['upcoming', 'unpublished'].includes(s.status)) note.append(el('span', null, `Opens ${when(s.opensAt)}`));
-    if (s.count != null && s.capacity && !['played', 'skipped', 'unpublished'].includes(s.status)) {
-      note.append(el('span', 'mono', `${s.count}/${s.capacity} players`));
-    }
-    if (s.status === 'open') note.append(el('span', null, 'Book it in the app'));
-    if (note.childNodes.length) tile.append(note);
-    return tile;
-  }
-
+  // ---- bot activity (published by the Dashboard workflow) ----
   function runSummary(run) {
     if (run.status !== 'completed') return { mark: 'running', title: 'Running…' };
     const errors = run.outcomes.filter((o) => o.level === 'failure');
@@ -569,67 +794,115 @@
       const booked = run.outcomes.some((o) => /^Booked|^Waiting list/.test(o.message));
       return { mark: booked ? 'booked' : 'success', title: run.outcomes.map((o) => o.message).join(' · ') };
     }
-    return { mark: 'success', title: 'Checked — nothing to book' };
+    return { mark: 'success', title: 'Checked, nothing to book' };
   }
 
-  function renderRuns(data) {
-    const list = $('runs');
-    list.replaceChildren();
-    if (!data.runs.length) {
-      list.append(el('li', 'empty-note', 'No bot runs yet.'));
-      $('actions-link').hidden = true;
-      return;
+  async function loadRuns() {
+    try {
+      const res = await fetch(`runs.json?t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) return;
+      const { runs } = await res.json();
+      if (!runs?.length) return;
+      const list = $('runs');
+      list.replaceChildren();
+      $('actions-link').href = runs[0].url.replace(/\/runs\/\d+.*$/, '/workflows/book.yml');
+      for (const run of runs) {
+        const sum = runSummary(run);
+        const li = el('li', 'run');
+        const main = el('div', 'run-main');
+        main.append(
+          el('span', `run-title${sum.failure ? ' failure' : ''}`, sum.title),
+          el('span', 'run-sub', `${when(run.startedAt)} · ${run.trigger === 'schedule' ? 'Scheduled' : 'Manual'}`),
+        );
+        const link = el('a', null, 'Log');
+        link.href = run.url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        li.append(el('span', `run-mark ${sum.mark}`), main, link);
+        list.append(li);
+      }
+      $('runs-section').hidden = false;
+    } catch {
+      // Bot activity is optional; the page works without it.
     }
-    $('actions-link').href = data.runs[0].url.replace(/\/runs\/\d+.*$/, '/workflows/book.yml');
-    for (const run of data.runs) {
-      const sum = runSummary(run);
-      const li = el('li', 'run');
-      const main = el('div', 'run-main');
-      main.append(
-        el('span', `run-title${sum.failure ? ' failure' : ''}`, sum.title),
-        el('span', 'run-sub', `${when(run.startedAt)} · ${run.trigger === 'schedule' ? 'Scheduled' : 'Manual'}`),
-      );
-      const link = el('a', null, 'Log');
-      link.href = run.url;
-      link.target = '_blank';
-      link.rel = 'noopener';
-      li.append(el('span', `run-mark ${sum.mark}`), main, link);
-      list.append(li);
+  }
+
+  // ---- flow ----
+  async function refresh() {
+    if (loading) return;
+    loading = true;
+    $('fresh').classList.add('loading');
+    $('fresh').textContent = 'Updating…';
+    try {
+      me = me || await api('GET', '/me');
+      $('who').textContent = [me.firstName, me.lastName].filter(Boolean).join(' ');
+      sessions = await loadSessions();
+      loadedAt = new Date();
+      render();
+    } catch (e) {
+      if (e.status !== 401) toast(`Couldn’t load sessions: ${e.message}`, true);
+    } finally {
+      loading = false;
+      $('fresh').classList.remove('loading');
+      if (loadedAt) $('fresh').textContent = `Updated ${ago(loadedAt)}`;
     }
   }
 
-  function render(data) {
-    const days = data.target.days.map((d) => DAY_LONG[d] || d).join(' & ');
-    $('subtitle').textContent = `${data.target.name} · ${days} at ${data.target.time} · Mouratoglou Country Club`;
-    const fresh = $('fresh');
-    fresh.textContent = `Updated ${ago(data.generatedAt)}`;
-    fresh.title = when(data.generatedAt);
-    fresh.classList.toggle('stale', Date.now() - new Date(data.generatedAt) > 4 * 3600e3);
+  function showApp() {
+    $('lock').hidden = true;
+    $('app').hidden = false;
+    refresh();
+    loadRuns();
+  }
 
-    const open = data.sessions.filter((s) => s.status === 'open');
-    const alert = $('alert');
-    alert.hidden = !open.length;
-    if (open.length) {
-      alert.replaceChildren(
-        el('strong', null, open.length === 1 ? 'Not booked:' : `${open.length} sessions not booked:`),
-        el('span', null, `${open.map((s) => when(s.start)).join(', ')} — registration is open, book in the app.`),
-      );
+  function signOut(message) {
+    auth.token = null;
+    auth.refresh = null;
+    me = null;
+    store.clear();
+    clearInterval(timer);
+    $('app').hidden = true;
+    $('lock').hidden = false;
+    $('login-error').textContent = message || '';
+    $('password').value = '';
+  }
+
+  $('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('login-btn').disabled = true;
+    $('login-error').textContent = '';
+    auth.remember = $('remember').checked;
+    try {
+      await signIn($('email').value.trim(), $('password').value);
+      $('password').value = '';
+      showApp();
+    } catch (err) {
+      $('login-error').textContent = err.status === 401
+        ? 'Email or password is wrong. Use the same login as the club app.'
+        : `Couldn’t sign in: ${err.message}`;
+    } finally {
+      $('login-btn').disabled = false;
     }
+  });
 
-    renderBoard(data);
-    renderNext(data);
-    renderSessions(data);
-    renderRuns(data);
-  }
+  $('logout-btn').addEventListener('click', () => signOut());
+  $('refresh-btn').addEventListener('click', () => { refresh(); loadRuns(); });
 
-  const saved = store.get();
-  if (saved) {
-    unlock(saved, true).catch((err) => {
-      if (err.name === 'OperationError') { store.clear(); showLock(); } else { showLock(err.message); }
-    });
-  } else {
-    showLock();
-  }
+  // Keep the page current while it's open.
+  setInterval(() => { if (!document.hidden && auth.token) refresh(); }, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && auth.token && loadedAt && Date.now() - loadedAt > 60 * 1000) refresh();
+  });
+
+  (async () => {
+    const saved = store.get();
+    if (saved) {
+      auth.refresh = saved;
+      if (await refreshToken()) return showApp();
+      store.clear();
+    }
+    signOut();
+  })();
 })();
 </script>
 </body>

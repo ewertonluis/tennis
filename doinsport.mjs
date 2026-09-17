@@ -14,6 +14,8 @@ export const config = {
   time: env.TARGET_TIME || '19:30',
   // Used only when the API does not expose the registration opening delay.
   openDaysBefore: Number(env.OPEN_DAYS_BEFORE || 8),
+  // The club allows this many sessions per week (Monday to Sunday).
+  maxPerWeek: Number(env.MAX_PER_WEEK || 2),
 };
 
 export const DAY_MS = 24 * 3600 * 1000;
@@ -82,7 +84,15 @@ export async function login() {
   return me;
 }
 
-export async function findTargetSessions(fromDate, toDate) {
+// Monday (YYYY-MM-DD) of the Paris week containing date.
+export function parisWeekStart(date) {
+  const d = new Date(`${paris(date).date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return isoDate(d);
+}
+
+// Sessions with the target name; only the configured days and time unless anyDay is set.
+export async function findTargetSessions(fromDate, toDate, { anyDay = false } = {}) {
   const sessions = [];
   for (let page = 1; ; page++) {
     const q = `activityType=lesson&club.id=${CLUB_ID}&startAt[after]=${fromDate}&startAt[before]=${toDate}` +
@@ -93,7 +103,8 @@ export async function findTargetSessions(fromDate, toDate) {
   }
   return sessions.filter((b) => {
     const p = paris(new Date(b.startAt));
-    return b.name?.trim() === config.name && !b.canceled && config.days.includes(p.day) && p.time === config.time;
+    if (b.name?.trim() !== config.name || b.canceled) return false;
+    return anyDay || (config.days.includes(p.day) && p.time === config.time);
   });
 }
 
@@ -107,6 +118,18 @@ export async function participants(booking) {
   return members(await http('GET', `/clubs/bookings/participants?booking.id=${booking.id}&itemsPerPage=200`));
 }
 
+export const isActive = (p) => p && !p.canceled && !p.inQueue;
+
+// Your participation in a session, preferring an active one over an earlier cancelled one.
 export async function myParticipation(booking, me) {
-  return (await participants(booking)).find((p) => iri(p.user) === me['@id']);
+  const mine = (await participants(booking)).filter((p) => iri(p.user) === me['@id']);
+  return mine.find((p) => !p.canceled) ?? mine[0];
+}
+
+export async function bookedInWeek(date, me) {
+  const from = parisWeekStart(date);
+  const to = isoDate(new Date(`${from}T12:00:00Z`).getTime() + 7 * DAY_MS);
+  const sessions = await findTargetSessions(from, to, { anyDay: true });
+  const mine = await Promise.all(sessions.map((b) => myParticipation(b, me)));
+  return mine.filter(isActive).length;
 }

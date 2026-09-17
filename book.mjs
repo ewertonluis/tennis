@@ -8,7 +8,7 @@
 //   add --dry-run to do everything except the actual registration
 
 import {
-  DAY_MS, config, findTargetSessions, http, isoDate, log, login, myParticipation, paris,
+  DAY_MS, bookedInWeek, config, findTargetSessions, http, isoDate, log, login, myParticipation, paris,
   registrationOpensAt, sleep,
 } from './doinsport.mjs';
 
@@ -73,6 +73,11 @@ async function handle(booking, me, { waitForOpening }) {
   const existing = await myParticipation(booking, me);
   if (existing) {
     outcome('notice', `Already ${existing.canceled ? 'cancelled by you, skipped' : 'registered'}: ${label}`);
+    return;
+  }
+  const booked = await bookedInWeek(new Date(booking.startAt), me);
+  if (booked >= config.maxPerWeek) {
+    outcome('notice', `Skipped, you already have ${booked} sessions that week: ${label}`);
     return;
   }
   const opensAt = registrationOpensAt(await http('GET', `/clubs/bookings/${booking.id}`));

@@ -12,14 +12,14 @@ the moment registration opens, using GitHub Actions.
 Failed runs trigger GitHub's email notification.
 
 ## Dashboard
-`dashboard/index.html` is published to GitHub Pages by the **Dashboard** workflow, every 2 hours and
-after every booking run. It shows which sessions are booked, the next registration the bot will grab
-(with a countdown), and recent bot runs. The data is encrypted, so only someone with the passphrase can read it.
+https://ewertonluis.github.io/tennis/ — sign in with your club (Doinsport) account.
 
-1. Add a secret `DASHBOARD_PASSPHRASE` (any long phrase you'll remember).
-2. Settings → Pages → Source: **GitHub Actions**. On a free GitHub plan the repository must be public
-   (your passwords stay in secrets; run logs become public).
-3. Actions → Dashboard → Run workflow, then open `https://<user>.github.io/tennis/`.
+- Live sessions for every weekday: spots left, full / waiting list, and your status.
+- Book, join the waiting list or cancel directly. The weekly limit (2) is enforced.
+- Countdown to the next registration the bot will grab, plus recent bot runs.
+
+The page talks to Doinsport straight from your browser; only a sign-in token is kept on the device.
+The **Dashboard** workflow publishes the page and `runs.json` (bot activity) every 2 hours and after each bot run.
 
 ## Settings (environment variables)
 | Variable | Default |
@@ -28,10 +28,11 @@ after every booking run. It shows which sessions are booked, the next registrati
 | `TARGET_DAYS` | `Mon,Wed` |
 | `TARGET_TIME` | `19:30` |
 | `OPEN_DAYS_BEFORE` | `8` |
+| `MAX_PER_WEEK` | `2` (bot skips a week that already has this many) |
 
 ## Local
 ```sh
 node book.mjs --list
-DOIN_EMAIL=... DOIN_PASSWORD=... DASHBOARD_PASSPHRASE=... node status.mjs dashboard/data.json
+GITHUB_REPOSITORY=ewertonluis/tennis node status.mjs dashboard/runs.json
 DOIN_EMAIL=... DOIN_PASSWORD=... node book.mjs --date 2026-09-21 --dry-run
 ```
