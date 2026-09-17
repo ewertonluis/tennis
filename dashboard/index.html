@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Court Time</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23d4e83b'/><path d='M14 30c22 8 22 32 0 40M86 30c-22 8-22 32 0 40' stroke='%23f4f7f5' stroke-width='6' fill='none'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --ground: #eef2ef;
+    --surface: #fbfcfb;
+    --surface-2: #e3e9e6;
+    --ink: #12263a;
+    --ink-2: #4d6173;
+    --ink-3: #7d8e9b;
+    --line: #cfd8d5;
+    --court: #1d4a6e;
+    --court-ink: #f4f7f5;
+    --chalk-line: rgba(244, 247, 245, 0.28);
+    --ball: #d4e83b;
+    --ball-ink: #1a2a0b;
+    --ball-soft: #eef5bf;
+    --amber: #b86e0f;
+    --amber-soft: #fbe8c9;
+    --alert: #c23b27;
+    --alert-soft: #f8dcd5;
+    --ok: #2f7a4b;
+    --focus: #1d6fd6;
+    --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+    --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #0b1622;
+      --surface: #122133;
+      --surface-2: #1a2d42;
+      --ink: #e7eef2;
+      --ink-2: #a6b6c3;
+      --ink-3: #72879a;
+      --line: #243a52;
+      --court: #17405f;
+      --court-ink: #eef4f1;
+      --chalk-line: rgba(238, 244, 241, 0.2);
+      --ball: #d4e83b;
+      --ball-ink: #17240a;
+      --ball-soft: #2c3a17;
+      --amber: #f0b050;
+      --amber-soft: #3a2a12;
+      --alert: #ff7d66;
+      --alert-soft: #3d1c17;
+      --ok: #6fcf93;
+      --focus: #7fb4ff;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #0b1622;
+    --surface: #122133;
+    --surface-2: #1a2d42;
+    --ink: #e7eef2;
+    --ink-2: #a6b6c3;
+    --ink-3: #72879a;
+    --line: #243a52;
+    --court: #17405f;
+    --court-ink: #eef4f1;
+    --chalk-line: rgba(238, 244, 241, 0.2);
+    --ball: #d4e83b;
+    --ball-ink: #17240a;
+    --ball-soft: #2c3a17;
+    --amber: #f0b050;
+    --amber-soft: #3a2a12;
+    --alert: #ff7d66;
+    --alert-soft: #3d1c17;
+    --ok: #6fcf93;
+    --focus: #7fb4ff;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font: 15px/1.5 var(--body);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 20px 64px; display: grid; gap: 28px; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .label {
+    font: 600 11px/1 var(--body);
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  /* Header */
+  header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+  .brand { display: grid; gap: 6px; }
+  h1 {
+    margin: 0;
+    font: 800 34px/1 var(--display);
+    font-stretch: 118%;
+    letter-spacing: -0.01em;
+  }
+  h1 .dot { display: inline-block; width: 0.5em; height: 0.5em; border-radius: 50%; background: var(--ball); margin-left: 4px; vertical-align: 0.08em; box-shadow: inset -3px -2px 0 rgba(0,0,0,.08); }
+  .subtitle { color: var(--ink-2); margin: 0; }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; color: var(--ink-2); font-size: 13px; }
+  .fresh { display: inline-flex; align-items: center; gap: 6px; }
+  .fresh::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+  .fresh.stale::before { background: var(--amber); }
+  .textbtn { background: none; border: 0; padding: 0; font: inherit; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .textbtn:hover { color: var(--ink); }
+
+  /* Scoreboard hero */
+  .top { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; }
+  @media (max-width: 780px) { .top { grid-template-columns: 1fr; } }
+  .board {
+    position: relative;
+    overflow: hidden;
+    background: var(--court);
+    color: var(--court-ink);
+    border-radius: 14px;
+    padding: 24px 26px 22px;
+    display: grid;
+    gap: 18px;
+    isolation: isolate;
+  }
+  /* Court lines: service box drawn behind the scoreboard */
+  .board::before, .board::after { content: ""; position: absolute; z-index: -1; pointer-events: none; }
+  .board::before { inset: 14px; border: 2px solid var(--chalk-line); border-radius: 3px; }
+  .board::after { top: 14px; bottom: 14px; left: 62%; border-left: 2px solid var(--chalk-line); }
+  .board .label { color: rgba(238, 244, 241, 0.7); }
+  .board h2 { margin: 0; font: 700 22px/1.2 var(--display); font-stretch: 105%; text-wrap: balance; }
+  .clock { display: flex; flex-wrap: wrap; gap: 8px; }
+  .unit {
+    display: grid; justify-items: center; gap: 6px;
+    min-width: 68px; padding: 10px 8px 8px;
+    background: rgba(5, 15, 25, 0.35);
+    border-radius: 8px;
+  }
+  .unit b { font: 600 38px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--ball); }
+  .unit span { font: 600 10px/1 var(--body); letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.7; }
+  .steps { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; margin: 0; padding: 0; list-style: none; }
+  .steps li { display: flex; gap: 8px; align-items: baseline; }
+  .steps .mono { color: var(--ball); }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; display: grid; gap: 14px; align-content: start; }
+  .next-date { font: 700 30px/1.05 var(--display); font-stretch: 110%; margin: 0; }
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 14px; }
+  .facts dt { color: var(--ink-3); }
+  .facts dd { margin: 0; }
+  .meter { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+  .meter i { display: block; height: 100%; background: var(--ink-2); border-radius: 3px; }
+
+  .alert {
+    display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline;
+    background: var(--alert-soft); color: var(--ink); border: 1px solid var(--alert);
+    border-radius: 10px; padding: 12px 16px;
+  }
+  .alert strong { color: var(--alert); }
+
+  /* Sessions by week */
+  section { display: grid; gap: 14px; }
+  .section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+  h3 { margin: 0; font: 700 19px/1.2 var(--display); font-stretch: 108%; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px; }
+  .weeks { display: grid; gap: 10px; }
+  .week { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; align-items: stretch; }
+  @media (max-width: 620px) { .week { grid-template-columns: 1fr; gap: 6px; } }
+  .week-name { padding-top: 12px; display: grid; gap: 2px; align-content: start; }
+  .week-name b { font: 600 14px/1.2 var(--body); }
+  .week-name span { font-size: 12px; color: var(--ink-3); }
+  .week.past { opacity: 0.72; }
+  .slots { display: grid; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 420px) { .slots { grid-template-columns: 1fr; } }
+  .slot {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; display: grid; gap: 8px; align-content: start; min-height: 104px;
+  }
+  .slot.empty { background: transparent; border-style: dashed; color: var(--ink-3); font-size: 13px; place-content: center; text-align: center; }
+  .slot.is-booked { border-color: color-mix(in srgb, var(--ball) 70%, var(--line)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ball) 45%, transparent); }
+  .slot.is-open { border-color: var(--alert); }
+  .slot-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .slot-day { font: 700 17px/1.1 var(--display); font-stretch: 105%; }
+  .slot-time { font: 500 13px/1 var(--mono); color: var(--ink-2); }
+  .slot-note { font-size: 12.5px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; width: fit-content;
+    font: 600 11.5px/1 var(--body); padding: 5px 9px 5px 8px; border-radius: 999px;
+    background: var(--surface-2); color: var(--ink-2); white-space: nowrap;
+  }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .pill.booked { background: var(--ball); color: var(--ball-ink); }
+  .pill.booked::before { background: var(--ball-ink); }
+  .pill.waitlist { background: var(--amber-soft); color: var(--amber); }
+  .pill.open { background: var(--alert-soft); color: var(--alert); }
+  .pill.upcoming { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink-2); }
+  .pill.unpublished { background: transparent; color: var(--ink-3); box-shadow: inset 0 0 0 1px var(--line); }
+  .pill.unpublished::before { background: transparent; border: 1.5px dashed currentColor; width: 5px; height: 5px; }
+  .pill.played { background: var(--surface-2); color: var(--ink-2); }
+  .pill.skipped, .pill.cancelled { background: transparent; color: var(--ink-3); padding-left: 0; }
+  .pill.skipped::before, .pill.cancelled::before { display: none; }
+  .pill.cancelled { text-decoration: line-through; }
+
+  /* Bot activity */
+  .runs { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .run { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 4px 12px; padding: 12px 18px; align-items: baseline; }
+  .run + .run { border-top: 1px solid var(--line); }
+  .run-mark { width: 10px; height: 10px; border-radius: 50%; background: var(--ink-3); align-self: center; }
+  .run-mark.success { background: var(--ok); }
+  .run-mark.booked { background: var(--ball); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ball) 35%, transparent); }
+  .run-mark.failure { background: var(--alert); }
+  .run-mark.running { background: var(--focus); animation: pulse 1.4s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) { .run-mark.running { animation: none; } }
+  @keyframes pulse { 50% { opacity: 0.35; } }
+  .run-main { display: grid; gap: 2px; min-width: 0; }
+  .run-title { font-weight: 500; overflow-wrap: anywhere; }
+  .run-title.failure { color: var(--alert); }
+  .run-sub { font-size: 12.5px; color: var(--ink-3); }
+  .run a { font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+  .empty-note { color: var(--ink-3); padding: 18px; margin: 0; }
+
+  /* Unlock */
+  .lock { min-height: 70vh; display: grid; place-items: center; }
+  .lock form { width: min(100%, 380px); display: grid; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 26px; }
+  .lock h1 { font-size: 28px; }
+  .lock p { margin: 0; color: var(--ink-2); }
+  .field { display: grid; gap: 6px; }
+  .field label { font-weight: 600; font-size: 13px; }
+  input[type="password"] {
+    font: 15px var(--mono); padding: 11px 12px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--ground); color: var(--ink); width: 100%;
+  }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--ink-2); }
+  .btn {
+    font: 600 15px var(--body); padding: 11px 16px; border-radius: 8px; border: 0; cursor: pointer;
+    background: var(--court); color: var(--court-ink);
+  }
+  .btn:hover { filter: brightness(1.12); }
+  .error { color: var(--alert); font-size: 13px; min-height: 1.2em; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="lock" id="lock" hidden>
+    <form id="unlock-form">
+      <h1>Court Time<span class="dot"></span></h1>
+      <p>Your booking data is encrypted. Enter the dashboard passphrase to see it.</p>
+      <div class="field">
+        <label for="passphrase">Passphrase</label>
+        <input type="password" id="passphrase" autocomplete="current-password" required>
+      </div>
+      <label class="check"><input type="checkbox" id="remember" checked> Remember on this device</label>
+      <button class="btn" type="submit" id="unlock-btn">Unlock</button>
+      <div class="error" id="unlock-error" role="alert"></div>
+    </form>
+  </div>
+
+  <div id="app" hidden>
+    <div style="display:grid;gap:28px">
+      <header>
+        <div class="brand">
+          <h1>Court Time<span class="dot"></span></h1>
+          <p class="subtitle" id="subtitle"></p>
+        </div>
+        <div class="meta">
+          <span class="fresh" id="fresh"></span>
+          <button class="textbtn" type="button" id="lock-btn">Lock</button>
+        </div>
+      </header>
+
+      <div class="alert" id="alert" hidden></div>
+
+      <div class="top">
+        <div class="board" id="board"></div>
+        <div class="card" id="next-card"></div>
+      </div>
+
+      <section aria-labelledby="sessions-h">
+        <div class="section-head">
+          <h3 id="sessions-h">Sessions</h3>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="weeks" id="weeks"></div>
+      </section>
+
+      <section aria-labelledby="runs-h">
+        <div class="section-head">
+          <h3 id="runs-h">Bot activity</h3>
+          <a class="run-sub" id="actions-link" href="#" target="_blank" rel="noopener">All runs on GitHub</a>
+        </div>
+        <ul class="runs" id="runs"></ul>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+(() => {
+  const TZ = 'Europe/Paris';
+  const STORE_KEY = 'court-time-passphrase';
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+
+  const STATUS = {
+    booked: 'Booked',
+    waitlist: 'Waiting list',
+    open: 'Open, not booked',
+    upcoming: 'Bot will book',
+    unpublished: 'Not on calendar yet',
+    played: 'Played',
+    skipped: 'Not booked',
+    cancelled: 'You cancelled',
+  };
+
+  const fmt = (d, opts) => new Intl.DateTimeFormat('en-GB', { timeZone: TZ, ...opts }).format(new Date(d));
+  const dayDate = (d) => fmt(d, { weekday: 'short', day: 'numeric', month: 'short' });
+  const longDay = (d) => fmt(d, { weekday: 'long', day: 'numeric', month: 'long' });
+  const hm = (d) => fmt(d, { hour: '2-digit', minute: '2-digit', hour12: false });
+  const when = (d) => `${dayDate(d)}, ${hm(d)}`;
+
+  function ago(d) {
+    const s = Math.round((Date.now() - new Date(d)) / 1000);
+    if (s < 90) return 'just now';
+    const m = Math.round(s / 60);
+    if (m < 90) return `${m} min ago`;
+    const h = Math.round(m / 60);
+    if (h < 36) return `${h} h ago`;
+    return `${Math.round(h / 24)} days ago`;
+  }
+
+  // ---- storage (best effort) ----
+  const store = {
+    get() { try { return localStorage.getItem(STORE_KEY); } catch { return null; } },
+    set(v) { try { localStorage.setItem(STORE_KEY, v); } catch {} },
+    clear() { try { localStorage.removeItem(STORE_KEY); } catch {} },
+  };
+
+  // ---- decryption ----
+  const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  async function decrypt(payload, passphrase) {
+    const enc = new TextEncoder();
+    const baseKey = await crypto.subtle.importKey('raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: unb64(payload.salt), iterations: payload.iterations, hash: 'SHA-256' },
+      baseKey, { name: 'AES-GCM', length: 256 }, false, ['decrypt'],
+    );
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(payload.iv) }, key, unb64(payload.data));
+    return JSON.parse(new TextDecoder().decode(plain));
+  }
+
+  let payload = null;
+  let timer = null;
+
+  async function loadPayload() {
+    const res = await fetch(`data.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('The dashboard data has not been published yet. Run the "Dashboard" workflow on GitHub.');
+    return res.json();
+  }
+
+  async function unlock(passphrase, remember) {
+    payload = payload || await loadPayload();
+    const data = await decrypt(payload, passphrase);
+    if (remember) store.set(passphrase);
+    $('lock').hidden = true;
+    $('app').hidden = false;
+    render(data);
+  }
+
+  function showLock(message) {
+    $('app').hidden = true;
+    $('lock').hidden = false;
+    $('unlock-error').textContent = message || '';
+    $('passphrase').focus();
+  }
+
+  $('unlock-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('unlock-btn').disabled = true;
+    $('unlock-error').textContent = '';
+    try {
+      await unlock($('passphrase').value, $('remember').checked);
+    } catch (err) {
+      $('unlock-error').textContent = err.name === 'OperationError'
+        ? 'That passphrase doesn’t match. Check DASHBOARD_PASSPHRASE in your GitHub secrets.'
+        : err.message;
+    } finally {
+      $('unlock-btn').disabled = false;
+    }
+  });
+
+  $('lock-btn').addEventListener('click', () => {
+    store.clear();
+    clearInterval(timer);
+    $('passphrase').value = '';
+    showLock();
+  });
+
+  // ---- rendering ----
+  function pill(status) {
+    return el('span', `pill ${status}`, STATUS[status] || status);
+  }
+
+  function renderBoard(data) {
+    const board = $('board');
+    board.replaceChildren();
+    const na = data.nextAction;
+    if (!na) {
+      board.append(el('span', 'label', 'Next bot action'), el('h2', null, 'Nothing to book right now'),
+        el('p', null, 'Every Monday and Wednesday session in the next three weeks is already handled.'));
+      return;
+    }
+    const opens = new Date(na.opensAt);
+    board.append(
+      el('span', 'label', 'Next bot action'),
+      el('h2', null, `Book ${longDay(na.sessionStart)} at ${hm(na.sessionStart)}`),
+    );
+    const clock = el('div', 'clock');
+    clock.setAttribute('aria-label', 'Time until registration opens');
+    const units = ['days', 'hours', 'min', 'sec'].map((u) => {
+      const box = el('div', 'unit');
+      const b = el('b', null, '--');
+      box.append(b, el('span', null, u));
+      clock.append(box);
+      return b;
+    });
+    board.append(clock);
+
+    const steps = el('ul', 'steps');
+    if (na.botWakeAt) {
+      const li = el('li');
+      li.append(el('span', null, 'Bot wakes'), el('span', 'mono', `~${hm(na.botWakeAt)}`));
+      steps.append(li);
+    }
+    const li2 = el('li');
+    li2.append(el('span', null, 'Registration opens'), el('span', 'mono', `${dayDate(opens)} · ${fmt(opens, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}`));
+    steps.append(li2);
+    board.append(steps);
+
+    const tick = () => {
+      let s = Math.max(0, Math.floor((opens - Date.now()) / 1000));
+      const parts = [Math.floor(s / 86400), Math.floor(s % 86400 / 3600), Math.floor(s % 3600 / 60), s % 60];
+      parts.forEach((v, i) => { units[i].textContent = String(v).padStart(2, '0'); });
+    };
+    tick();
+    clearInterval(timer);
+    timer = setInterval(tick, 1000);
+  }
+
+  function renderNext(data) {
+    const card = $('next-card');
+    card.replaceChildren();
+    const now = Date.now();
+    const next = data.sessions.find((s) => new Date(s.start) > now && ['booked', 'waitlist'].includes(s.status));
+    card.append(el('span', 'label', 'Your next session'));
+    if (!next) {
+      card.append(el('p', 'next-date', 'None booked'), el('p', 'subtitle', 'Upcoming sessions will show here once the bot books them.'));
+      return;
+    }
+    card.append(el('p', 'next-date', longDay(next.start)), pill(next.status));
+    const facts = el('dl', 'facts');
+    const add = (k, v) => { facts.append(el('dt', null, k), el('dd', null, v)); };
+    add('Time', `${hm(next.start)}${next.end ? `–${hm(next.end)}` : ''}`);
+    if (next.court) add('Court', next.court);
+    if (next.count != null && next.capacity) add('Players', `${next.count} of ${next.capacity}`);
+    card.append(facts);
+    if (next.count != null && next.capacity) {
+      const meter = el('div', 'meter');
+      const bar = el('i');
+      bar.style.width = `${Math.min(100, (next.count / next.capacity) * 100)}%`;
+      meter.append(bar);
+      meter.setAttribute('role', 'img');
+      meter.setAttribute('aria-label', `${next.count} of ${next.capacity} places taken`);
+      card.append(meter);
+    }
+  }
+
+  // Monday of the Paris week containing d, as YYYY-MM-DD.
+  function weekKey(d) {
+    const local = fmt(d, { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-');
+    const date = new Date(`${local}T12:00:00Z`);
+    const dow = (date.getUTCDay() + 6) % 7;
+    date.setUTCDate(date.getUTCDate() - dow);
+    return date.toISOString().slice(0, 10);
+  }
+
+  function weekLabel(key) {
+    const diff = Math.round((new Date(`${key}T12:00:00Z`) - new Date(`${weekKey(new Date())}T12:00:00Z`)) / (7 * 864e5));
+    const names = { '-2': 'Two weeks ago', '-1': 'Last week', '0': 'This week', '1': 'Next week' };
+    const range = `from ${fmt(`${key}T12:00:00Z`, { day: 'numeric', month: 'short' })}`;
+    return { title: names[diff] || `In ${diff} weeks`, range, past: diff < 0 };
+  }
+
+  const DAY_INDEX = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+  const DAY_LONG = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
+
+  function renderSessions(data) {
+    const days = data.target.days;
+    const weeks = new Map();
+    for (const s of data.sessions) {
+      const k = weekKey(s.start);
+      if (!weeks.has(k)) weeks.set(k, []);
+      weeks.get(k).push(s);
+    }
+    const root = $('weeks');
+    root.replaceChildren();
+    for (const [key, list] of [...weeks.entries()].sort()) {
+      const info = weekLabel(key);
+      const row = el('div', `week${info.past ? ' past' : ''}`);
+      const name = el('div', 'week-name');
+      name.append(el('b', null, info.title), el('span', null, info.range));
+      const slots = el('div', 'slots');
+      slots.style.setProperty('--cols', days.length);
+      for (const day of days) {
+        const s = list.find((x) => fmt(x.start, { weekday: 'short' }) === day);
+        if (!s) {
+          const monday = new Date(`${key}T12:00:00Z`);
+          monday.setUTCDate(monday.getUTCDate() + DAY_INDEX[day]);
+          slots.append(el('div', 'slot empty', `No session ${fmt(monday, { weekday: 'short', day: 'numeric', month: 'short' })}`));
+          continue;
+        }
+        slots.append(slotTile(s));
+      }
+      row.append(name, slots);
+      root.append(row);
+    }
+
+    const legend = $('legend');
+    legend.replaceChildren(...['booked', 'upcoming', 'waitlist', 'open'].map(pill));
+  }
+
+  function slotTile(s) {
+    const tile = el('div', `slot is-${s.status}`);
+    const top = el('div', 'slot-top');
+    top.append(el('span', 'slot-day', dayDate(s.start)), el('span', 'slot-time', hm(s.start)));
+    tile.append(top, pill(s.status));
+    const note = el('div', 'slot-note');
+    if (['upcoming', 'unpublished'].includes(s.status)) note.append(el('span', null, `Opens ${when(s.opensAt)}`));
+    if (s.count != null && s.capacity && !['played', 'skipped', 'unpublished'].includes(s.status)) {
+      note.append(el('span', 'mono', `${s.count}/${s.capacity} players`));
+    }
+    if (s.status === 'open') note.append(el('span', null, 'Book it in the app'));
+    if (note.childNodes.length) tile.append(note);
+    return tile;
+  }
+
+  function runSummary(run) {
+    if (run.status !== 'completed') return { mark: 'running', title: 'Running…' };
+    const errors = run.outcomes.filter((o) => o.level === 'failure');
+    if (run.conclusion === 'failure' || errors.length) {
+      return { mark: 'failure', title: errors.map((o) => o.message).join(' · ') || 'Run failed', failure: true };
+    }
+    if (run.conclusion === 'cancelled') return { mark: '', title: 'Cancelled' };
+    if (run.outcomes.length) {
+      const booked = run.outcomes.some((o) => /^Booked|^Waiting list/.test(o.message));
+      return { mark: booked ? 'booked' : 'success', title: run.outcomes.map((o) => o.message).join(' · ') };
+    }
+    return { mark: 'success', title: 'Checked — nothing to book' };
+  }
+
+  function renderRuns(data) {
+    const list = $('runs');
+    list.replaceChildren();
+    if (!data.runs.length) {
+      list.append(el('li', 'empty-note', 'No bot runs yet.'));
+      $('actions-link').hidden = true;
+      return;
+    }
+    $('actions-link').href = data.runs[0].url.replace(/\/runs\/\d+.*$/, '/workflows/book.yml');
+    for (const run of data.runs) {
+      const sum = runSummary(run);
+      const li = el('li', 'run');
+      const main = el('div', 'run-main');
+      main.append(
+        el('span', `run-title${sum.failure ? ' failure' : ''}`, sum.title),
+        el('span', 'run-sub', `${when(run.startedAt)} · ${run.trigger === 'schedule' ? 'Scheduled' : 'Manual'}`),
+      );
+      const link = el('a', null, 'Log');
+      link.href = run.url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      li.append(el('span', `run-mark ${sum.mark}`), main, link);
+      list.append(li);
+    }
+  }
+
+  function render(data) {
+    const days = data.target.days.map((d) => DAY_LONG[d] || d).join(' & ');
+    $('subtitle').textContent = `${data.target.name} · ${days} at ${data.target.time} · Mouratoglou Country Club`;
+    const fresh = $('fresh');
+    fresh.textContent = `Updated ${ago(data.generatedAt)}`;
+    fresh.title = when(data.generatedAt);
+    fresh.classList.toggle('stale', Date.now() - new Date(data.generatedAt) > 4 * 3600e3);
+
+    const open = data.sessions.filter((s) => s.status === 'open');
+    const alert = $('alert');
+    alert.hidden = !open.length;
+    if (open.length) {
+      alert.replaceChildren(
+        el('strong', null, open.length === 1 ? 'Not booked:' : `${open.length} sessions not booked:`),
+        el('span', null, `${open.map((s) => when(s.start)).join(', ')} — registration is open, book in the app.`),
+      );
+    }
+
+    renderBoard(data);
+    renderNext(data);
+    renderSessions(data);
+    renderRuns(data);
+  }
+
+  const saved = store.get();
+  if (saved) {
+    unlock(saved, true).catch((err) => {
+      if (err.name === 'OperationError') { store.clear(); showLock(); } else { showLock(err.message); }
+    });
+  } else {
+    showLock();
+  }
+})();
+</script>
+</body>
+</html>

@@ -11,6 +11,16 @@ the moment registration opens, using GitHub Actions.
 
 Failed runs trigger GitHub's email notification.
 
+## Dashboard
+`dashboard/index.html` is published to GitHub Pages by the **Dashboard** workflow, every 2 hours and
+after every booking run. It shows which sessions are booked, the next registration the bot will grab
+(with a countdown), and recent bot runs. The data is encrypted, so only someone with the passphrase can read it.
+
+1. Add a secret `DASHBOARD_PASSPHRASE` (any long phrase you'll remember).
+2. Settings → Pages → Source: **GitHub Actions**. On a free GitHub plan the repository must be public
+   (your passwords stay in secrets; run logs become public).
+3. Actions → Dashboard → Run workflow, then open `https://<user>.github.io/tennis/`.
+
 ## Settings (environment variables)
 | Variable | Default |
 |---|---|
@@ -22,5 +32,6 @@ Failed runs trigger GitHub's email notification.
 ## Local
 ```sh
 node book.mjs --list
+DOIN_EMAIL=... DOIN_PASSWORD=... DASHBOARD_PASSPHRASE=... node status.mjs dashboard/data.json
 DOIN_EMAIL=... DOIN_PASSWORD=... node book.mjs --date 2026-09-21 --dry-run
 ```

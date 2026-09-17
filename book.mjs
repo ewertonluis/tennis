@@ -7,19 +7,12 @@
 //   node book.mjs --list           list upcoming target sessions (no login needed)
 //   add --dry-run to do everything except the actual registration
 
-const API = 'https://api-blockout.doinsport.club';
-const CLUB_ID = '652b9a65-0756-4f08-9b30-e20130aeea42';
-const WHITE_LABEL_ID = '472ed15e-b862-4ffd-b81e-1fa8a89b6148';
-const TZ = 'Europe/Paris';
+import {
+  DAY_MS, config, findTargetSessions, http, isoDate, log, login, myParticipation, paris,
+  registrationOpensAt, sleep,
+} from './doinsport.mjs';
 
 const env = process.env;
-const EMAIL = env.DOIN_EMAIL;
-const PASSWORD = env.DOIN_PASSWORD;
-const TARGET_NAME = env.TARGET_NAME || 'Permanence adultes';
-const TARGET_DAYS = (env.TARGET_DAYS || 'Mon,Wed').split(',').map((d) => d.trim());
-const TARGET_TIME = env.TARGET_TIME || '19:30';
-// Used only when the API does not expose the registration opening delay.
-const OPEN_DAYS_BEFORE = Number(env.OPEN_DAYS_BEFORE || 7);
 // Scheduled mode only handles sessions whose registration opens within this window.
 const LOOKAHEAD_MIN = Number(env.LOOKAHEAD_MINUTES || 90);
 // How long to keep retrying after the expected opening time.
@@ -30,92 +23,15 @@ const DRY_RUN = args.includes('--dry-run') || env.DRY_RUN === 'true';
 const LIST = args.includes('--list');
 const DATE = args.includes('--date') ? args[args.indexOf('--date') + 1] : env.BOOK_DATE || '';
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, Math.max(0, ms)));
-const log = (...a) => console.log(new Date().toISOString(), ...a);
-const members = (d) => (Array.isArray(d) ? d : d?.['hydra:member'] ?? []);
-const iri = (x) => (typeof x === 'string' ? x : x?.['@id']);
-
-function paris(date) {
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-GB', {
-      timeZone: TZ, weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', hour12: false,
-    }).formatToParts(date).map((p) => [p.type, p.value]),
-  );
-  return { day: parts.weekday, date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
+// Outcome lines the dashboard reads back from the run's annotations.
+function outcome(level, message) {
+  log(message);
+  if (env.GITHUB_ACTIONS) console.log(`::${level} title=Outcome::${message}`);
 }
 
-let token = null;
-
-async function http(method, path, body) {
-  const res = await fetch(path.startsWith('http') ? path : API + path, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/ld+json',
-      'X-Locale': 'fr',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await res.text();
-  let data;
-  try { data = JSON.parse(text); } catch { data = text; }
-  if (!res.ok) {
-    const msg = data?.['hydra:description'] || data?.detail || data?.message || text.slice(0, 300);
-    const err = new Error(`${method} ${path} -> ${res.status}: ${msg}`);
-    err.status = res.status;
-    throw err;
-  }
-  return data;
-}
-
-async function login() {
-  if (!EMAIL || !PASSWORD) throw new Error('DOIN_EMAIL and DOIN_PASSWORD must be set');
-  token = null;
-  const data = await http('POST', '/client_login_check', {
-    username: EMAIL,
-    password: PASSWORD,
-    clubWhiteLabel: `/clubs/white-labels/${WHITE_LABEL_ID}`,
-    origin: 'white_label_app',
-  });
-  token = data.token;
-  if (!token) throw new Error('Login succeeded but no token returned');
-  const me = await http('GET', '/me');
-  log(`Logged in as ${me.firstName ?? ''} ${me.lastName ?? ''} (${me['@id']})`);
-  return me;
-}
-
-async function findTargetSessions(fromDate, toDate) {
-  const sessions = [];
-  for (let page = 1; ; page++) {
-    const q = `activityType=lesson&club.id=${CLUB_ID}&startAt[after]=${fromDate}&startAt[before]=${toDate}` +
-      `&order[startAt]=asc&itemsPerPage=200&page=${page}`;
-    const batch = members(await http('GET', `/clubs/bookings?${q}`));
-    sessions.push(...batch);
-    if (batch.length < 200) break;
-  }
-  return sessions.filter((b) => {
-    const p = paris(new Date(b.startAt));
-    return b.name?.trim() === TARGET_NAME && !b.canceled && TARGET_DAYS.includes(p.day) && p.time === TARGET_TIME;
-  });
-}
-
-function registrationOpensAt(booking) {
-  const start = new Date(booking.startAt).getTime();
-  const delay = booking.startRegistrationDelay || booking.registrationTimeBeforeStart;
-  const ms = delay ? delay * 1000 : OPEN_DAYS_BEFORE * 24 * 3600 * 1000;
-  return new Date(start - ms);
-}
-
-async function myParticipation(booking, me) {
-  const data = await http('GET', `/clubs/bookings/participants?booking.id=${booking.id}&itemsPerPage=200`);
-  return members(data).find((p) => iri(p.user) === me['@id']);
-}
-
-async function register(booking, me) {
+async function register(booking, me, label) {
   if (DRY_RUN) {
-    log(`[dry-run] Would register for ${booking.name} ${booking.startAt}`);
+    outcome('notice', `Dry run: would register for ${label}`);
     return;
   }
   const participant = await http('POST', '/clubs/bookings/participants', {
@@ -133,18 +49,18 @@ async function register(booking, me) {
     const confirmed = await http('PUT', participant['@id'], { confirmed: true });
     if (confirmed.confirmed !== true) throw new Error('Confirmation was not accepted');
   }
-  log(participant.inQueue ? 'Session full: added to the WAITING LIST' : 'Booked!');
+  outcome('notice', participant.inQueue ? `Waiting list: ${label}` : `Booked: ${label}`);
 }
 
-async function bookWithRetry(booking, me, opensAt) {
+async function bookWithRetry(booking, me, label, opensAt) {
   const deadline = opensAt.getTime() + RETRY_FOR_SEC * 1000;
   for (let attempt = 1; ; attempt++) {
     try {
-      await register(booking, me);
+      await register(booking, me, label);
       return;
     } catch (e) {
-      if (e.status === 401) { await login(); continue; }
-      if (Date.now() > deadline) throw e;
+      if (e.status === 401) { me = await login(); continue; }
+      if (Date.now() > deadline) throw new Error(`${label}: ${e.message}`);
       log(`Attempt ${attempt} failed (${e.message}), retrying`);
       await sleep(1000);
     }
@@ -152,11 +68,12 @@ async function bookWithRetry(booking, me, opensAt) {
 }
 
 async function handle(booking, me, { waitForOpening }) {
-  const label = `${booking.name} on ${paris(new Date(booking.startAt)).date} ${TARGET_TIME}`;
+  const p = paris(new Date(booking.startAt));
+  const label = `${booking.name} ${p.day} ${p.date} ${p.time}`;
   const existing = await myParticipation(booking, me);
   if (existing) {
-    log(`${label}: already ${existing.canceled ? 'cancelled by you (skipping)' : 'registered'}`);
-    return true;
+    outcome('notice', `Already ${existing.canceled ? 'cancelled by you, skipped' : 'registered'}: ${label}`);
+    return;
   }
   const opensAt = registrationOpensAt(await http('GET', `/clubs/bookings/${booking.id}`));
   if (waitForOpening && opensAt > Date.now()) {
@@ -166,35 +83,31 @@ async function handle(booking, me, { waitForOpening }) {
     await sleep(opensAt - Date.now() + 200);
   }
   log(`${label}: registering`);
-  await bookWithRetry(booking, me, waitForOpening ? opensAt : new Date());
-  return true;
+  await bookWithRetry(booking, me, label, waitForOpening ? opensAt : new Date());
 }
 
 async function main() {
-  const day = 24 * 3600 * 1000;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = isoDate(Date.now());
 
   if (LIST) {
-    const sessions = await findTargetSessions(today, new Date(Date.now() + 21 * day).toISOString().slice(0, 10));
-    for (const b of sessions) {
+    for (const b of await findTargetSessions(today, isoDate(Date.now() + 21 * DAY_MS))) {
       const p = paris(new Date(b.startAt));
       log(`${p.day} ${p.date} ${p.time}  ${b.name}  (id ${b.id}, max ${b.maxParticipantsCountLimit})`);
     }
     return;
   }
 
-  let me = await login();
+  const me = await login();
 
   if (DATE) {
-    const next = new Date(new Date(DATE).getTime() + day).toISOString().slice(0, 10);
-    const [booking] = await findTargetSessions(DATE, next);
-    if (!booking) throw new Error(`No ${TARGET_NAME} session found on ${DATE}`);
+    const [booking] = await findTargetSessions(DATE, isoDate(new Date(DATE).getTime() + DAY_MS));
+    if (!booking) throw new Error(`No ${config.name} session found on ${DATE}`);
     await handle(booking, me, { waitForOpening: false });
     return;
   }
 
   // Scheduled mode: sessions whose registration opens between now-RETRY and now+LOOKAHEAD.
-  const sessions = await findTargetSessions(today, new Date(Date.now() + 15 * day).toISOString().slice(0, 10));
+  const sessions = await findTargetSessions(today, isoDate(Date.now() + 15 * DAY_MS));
   const due = sessions.filter((b) => {
     const opensAt = registrationOpensAt(b).getTime();
     return opensAt <= Date.now() + LOOKAHEAD_MIN * 60_000 && opensAt >= Date.now() - RETRY_FOR_SEC * 1000;
@@ -208,5 +121,6 @@ async function main() {
 
 main().catch((e) => {
   console.error(new Date().toISOString(), 'FAILED:', e.message);
+  if (env.GITHUB_ACTIONS) console.log(`::error title=Outcome::${e.message}`);
   process.exit(1);
 });

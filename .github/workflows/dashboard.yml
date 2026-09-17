@@ -1,0 +1,50 @@
+name: Dashboard
+
+on:
+  schedule:
+    - cron: '45 */2 * * *' # every 2 hours
+  workflow_run:
+    workflows: ['Book tennis']
+    types: [completed]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: dashboard
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: mkdir -p _site && cp dashboard/index.html _site/ && node status.mjs _site/data.json
+        env:
+          DOIN_EMAIL: ${{ secrets.DOIN_EMAIL }}
+          DOIN_PASSWORD: ${{ secrets.DOIN_PASSWORD }}
+          DASHBOARD_PASSPHRASE: ${{ secrets.DASHBOARD_PASSPHRASE }}
+          GITHUB_TOKEN: ${{ github.token }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
