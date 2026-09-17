@@ -27,7 +27,7 @@ after every booking run. It shows which sessions are booked, the next registrati
 | `TARGET_NAME` | `Permanence adultes` |
 | `TARGET_DAYS` | `Mon,Wed` |
 | `TARGET_TIME` | `19:30` |
-| `OPEN_DAYS_BEFORE` | `7` |
+| `OPEN_DAYS_BEFORE` | `8` |
 
 ## Local
 ```sh

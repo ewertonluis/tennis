@@ -13,7 +13,7 @@ export const config = {
   days: (env.TARGET_DAYS || 'Mon,Wed').split(',').map((d) => d.trim()),
   time: env.TARGET_TIME || '19:30',
   // Used only when the API does not expose the registration opening delay.
-  openDaysBefore: Number(env.OPEN_DAYS_BEFORE || 7),
+  openDaysBefore: Number(env.OPEN_DAYS_BEFORE || 8),
 };
 
 export const DAY_MS = 24 * 3600 * 1000;

@@ -135,10 +135,8 @@
     gap: 18px;
     isolation: isolate;
   }
-  /* Court lines: service box drawn behind the scoreboard */
-  .board::before, .board::after { content: ""; position: absolute; z-index: -1; pointer-events: none; }
-  .board::before { inset: 14px; border: 2px solid var(--chalk-line); border-radius: 3px; }
-  .board::after { top: 14px; bottom: 14px; left: 62%; border-left: 2px solid var(--chalk-line); }
+  /* Court outline drawn behind the scoreboard */
+  .board::before { content: ""; position: absolute; z-index: -1; pointer-events: none; inset: 14px; border: 2px solid var(--chalk-line); border-radius: 3px; }
   .board .label { color: rgba(238, 244, 241, 0.7); }
   .board h2 { margin: 0; font: 700 22px/1.2 var(--display); font-stretch: 105%; text-wrap: balance; }
   .clock { display: flex; flex-wrap: wrap; gap: 8px; }
