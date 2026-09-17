@@ -1,0 +1,37 @@
+name: Book tennis
+
+on:
+  schedule:
+    # Registration opens at 19:30 Paris time. GitHub cron is UTC and often runs late,
+    # so start ~70 min early; the script waits for the exact opening time.
+    - cron: '20 16 * * *' # summer (CEST): opening = 17:30 UTC
+    - cron: '20 17 * * *' # winter (CET):  opening = 18:30 UTC
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Book a specific date now (YYYY-MM-DD). Empty = scheduled mode'
+        required: false
+      dry_run:
+        description: 'Dry run (log in and check, but do not book)'
+        type: boolean
+        default: true
+
+concurrency:
+  group: book-tennis
+  cancel-in-progress: false
+
+jobs:
+  book:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node book.mjs
+        env:
+          DOIN_EMAIL: ${{ secrets.DOIN_EMAIL }}
+          DOIN_PASSWORD: ${{ secrets.DOIN_PASSWORD }}
+          BOOK_DATE: ${{ inputs.date }}
+          DRY_RUN: ${{ inputs.dry_run }}
