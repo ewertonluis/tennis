@@ -16,6 +16,9 @@ on:
         type: boolean
         default: true
 
+permissions:
+  contents: read
+
 concurrency:
   group: book-tennis
   cancel-in-progress: false
@@ -33,5 +36,6 @@ jobs:
         env:
           DOIN_EMAIL: ${{ secrets.DOIN_EMAIL }}
           DOIN_PASSWORD: ${{ secrets.DOIN_PASSWORD }}
+          GITHUB_TOKEN: ${{ github.token }} # re-reads plan.json right before registering
           BOOK_DATE: ${{ inputs.date }}
           DRY_RUN: ${{ inputs.dry_run }}

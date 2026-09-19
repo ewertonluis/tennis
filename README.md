@@ -14,17 +14,29 @@ Failed runs trigger GitHub's email notification.
 ## Dashboard
 https://ewertonluis.github.io/tennis/ — sign in with your club (Doinsport) account.
 
-- Live sessions for every weekday: spots left, full / waiting list, and your status.
+- Live sessions for every weekday (including Friday's *Permanence adultes débutants*): spots left, full / waiting list, and your status.
 - Book, join the waiting list or cancel directly. The weekly limit (2) is enforced.
 - Countdown to the next registration the bot will grab, plus recent bot runs.
+- Change a week's plan before registration opens: **Skip this week** on a Monday/Wednesday, then **Bot books this**
+  on another session that week. This edits `plan.json` in the repo, so the first time it asks for a fine-grained
+  GitHub token (this repo only, Contents: read and write), which it keeps only in that browser.
 
 The page talks to Doinsport straight from your browser; only a sign-in token is kept on the device.
 The **Dashboard** workflow publishes the page and `runs.json` (bot activity) every 2 hours and after each bot run.
 
+## Week-by-week plan
+`plan.json` lists Paris dates the bot should skip or book on top of `TARGET_DAYS`:
+```json
+{ "skip": ["2026-09-28"], "add": ["2026-10-01"] }
+```
+The bot reads it again right before registering, so a skip still counts if it lands after the run has started.
+An addition has to be saved at least 90 minutes before its registration opens.
+
 ## Settings (environment variables)
 | Variable | Default |
 |---|---|
-| `TARGET_NAME` | `Permanence adultes` |
+| `TARGET_NAME` | `Permanence adultes` (what `TARGET_DAYS` books) |
+| `SESSION_NAMES` | `Permanence adultes,Permanence adultes débutants` (bookable via the plan, counted in the weekly limit) |
 | `TARGET_DAYS` | `Mon,Wed` |
 | `TARGET_TIME` | `19:30` |
 | `OPEN_DAYS_BEFORE` | `8` |

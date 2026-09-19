@@ -169,6 +169,7 @@
   .quota { display: flex; gap: 4px; align-items: center; margin-top: 2px; }
   .quota i { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--ink-3); }
   .quota i.on { background: var(--ball); border-color: color-mix(in srgb, var(--ball) 60%, var(--ink)); }
+  .quota i.plan { border-style: dashed; border-color: var(--ink-2); background: color-mix(in srgb, var(--ball) 25%, transparent); }
   .quota small { font-size: 12px; color: var(--ink-2); margin-left: 4px; }
   .slots { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 10px; }
   @media (max-width: 980px) { .slots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -208,8 +209,9 @@
   .pill.notopen, .pill.unpublished { background: transparent; color: var(--ink-3); box-shadow: inset 0 0 0 1px var(--line); }
   .pill.unpublished::before { background: transparent; border: 1.5px dashed currentColor; width: 5px; height: 5px; }
   .pill.played { background: var(--surface-2); color: var(--ink-2); }
-  .pill.skipped, .pill.cancelled { background: transparent; color: var(--ink-3); padding-left: 0; }
-  .pill.skipped::before, .pill.cancelled::before { display: none; }
+  .pill.skipped, .pill.cancelled, .pill.planskip { background: transparent; color: var(--ink-3); padding-left: 0; }
+  .pill.skipped::before, .pill.cancelled::before, .pill.planskip::before { display: none; }
+  .slot.is-planskip { border-style: dashed; }
 
   .btn {
     font: 600 14px/1 var(--body); padding: 9px 14px; border-radius: 8px; border: 0; cursor: pointer;
@@ -254,6 +256,17 @@
   .check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--ink-2); }
   .error { color: var(--alert); font-size: 13px; min-height: 1.2em; }
 
+  dialog {
+    width: min(100% - 32px, 460px); border: 1px solid var(--line); border-radius: 14px; padding: 22px;
+    background: var(--surface); color: var(--ink);
+  }
+  dialog::backdrop { background: rgba(5, 15, 25, 0.5); }
+  dialog form { display: grid; gap: 14px; }
+  dialog h2 { margin: 0; font: 700 20px/1.2 var(--display); }
+  dialog p, dialog ol { margin: 0; color: var(--ink-2); font-size: 14px; }
+  dialog ol { padding-left: 20px; display: grid; gap: 4px; }
+  .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
   .toast {
     position: fixed; left: 50%; transform: translateX(-50%);
     bottom: calc(20px + env(safe-area-inset-bottom, 0px));
@@ -296,6 +309,7 @@
         <span id="who"></span>
         <span class="fresh" id="fresh"></span>
         <button class="textbtn" type="button" id="refresh-btn">Refresh</button>
+        <button class="textbtn" type="button" id="github-btn">Connect GitHub</button>
         <button class="textbtn" type="button" id="logout-btn">Sign out</button>
       </div>
     </header>
@@ -310,7 +324,7 @@
     <section aria-labelledby="sessions-h">
       <div class="section-head">
         <h3 id="sessions-h">Sessions</h3>
-        <p class="hint">Up to 2 sessions a week. The bot books Monday and Wednesday; cancel one to play another day.</p>
+        <p class="hint">Up to 2 sessions a week. The bot books Monday and Wednesday. To swap a day, skip it and pick another session in that week before registration opens.</p>
       </div>
       <div class="weeks" id="weeks"></div>
     </section>
@@ -324,6 +338,27 @@
     </section>
   </div>
 </main>
+<dialog id="github-dialog" aria-labelledby="github-h">
+  <form method="dialog" id="github-form">
+    <h2 id="github-h">Connect GitHub to change the plan</h2>
+    <p>The bot reads its week-by-week plan from <span class="mono">plan.json</span> in the repository. To edit it from here, paste a GitHub token once:</p>
+    <ol>
+      <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a fine-grained token</a></li>
+      <li>Repository access: only <span class="mono">ewertonluis/tennis</span></li>
+      <li>Permissions: Contents → Read and write</li>
+    </ol>
+    <div class="field">
+      <label for="github-token">Token</label>
+      <input type="password" id="github-token" autocomplete="off" spellcheck="false" placeholder="github_pat_…">
+    </div>
+    <p class="hint">Kept only in this browser.</p>
+    <div class="error" id="github-error" role="alert"></div>
+    <div class="dialog-actions">
+      <button class="btn ghost" type="button" id="github-cancel">Cancel</button>
+      <button class="btn" type="submit" id="github-save">Connect</button>
+    </div>
+  </form>
+</dialog>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
@@ -332,13 +367,16 @@
   const CLUB_ID = '652b9a65-0756-4f08-9b30-e20130aeea42';
   const WHITE_LABEL_ID = '472ed15e-b862-4ffd-b81e-1fa8a89b6148';
   const TZ = 'Europe/Paris';
-  const SESSION_NAME = 'Permanence adultes';
   // Must match doinsport.mjs defaults and the crons in .github/workflows/book.yml.
-  const BOT = { days: ['Mon', 'Wed'], time: '19:30', openDaysBefore: 8, maxPerWeek: 2, cronsUtc: ['16:20', '17:20'], lookaheadMin: 90 };
+  const SESSION_NAMES = ['Permanence adultes', 'Permanence adultes débutants'];
+  const BOT = { name: 'Permanence adultes', days: ['Mon', 'Wed'], time: '19:30', openDaysBefore: 8, maxPerWeek: 2, cronsUtc: ['16:20', '17:20'], lookaheadMin: 90 };
+  // The repository holding plan.json, which the bot reads.
+  const REPO = 'ewertonluis/tennis';
   const WEEKS_SHOWN = 4;
   const DAY_MS = 864e5;
   const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const TOKEN_KEY = 'court-time-refresh-token';
+  const GITHUB_KEY = 'court-time-github-token';
 
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, text) => {
@@ -381,11 +419,13 @@
   }
 
   // ---- storage (best effort) ----
-  const store = {
-    get() { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } },
-    set(v) { try { localStorage.setItem(TOKEN_KEY, v); } catch {} },
-    clear() { try { localStorage.removeItem(TOKEN_KEY); } catch {} },
-  };
+  const storeFor = (key) => ({
+    get() { try { return localStorage.getItem(key); } catch { return null; } },
+    set(v) { try { localStorage.setItem(key, v); } catch {} },
+    clear() { try { localStorage.removeItem(key); } catch {} },
+  });
+  const store = storeFor(TOKEN_KEY);
+  const githubStore = storeFor(GITHUB_KEY);
 
   // ---- Doinsport API ----
   const auth = { token: null, refresh: null, remember: true };
@@ -452,6 +492,72 @@
     }));
   }
 
+  // ---- plan.json: week-by-week skips and additions for the bot ----
+  // Read and written through the GitHub API with a token the user pastes once; without one,
+  // the copy published next to this page is shown read-only.
+  const github = { token: githubStore.get() };
+  let plan = { skip: [], add: [] };
+  let planSha = null;
+
+  async function gh(method, path, body) {
+    const res = await fetch(`https://api.github.com/repos/${REPO}${path}`, {
+      method,
+      headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${github.token}` },
+      body: body ? JSON.stringify(body) : undefined,
+      cache: 'no-store',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ApiError(res.status, data.message || `GitHub request failed (${res.status})`);
+    return data;
+  }
+
+  const normalizePlan = (p) => ({ skip: p?.skip ?? [], add: p?.add ?? [] });
+
+  async function loadPlan() {
+    if (github.token) {
+      try {
+        const file = await gh('GET', '/contents/plan.json');
+        planSha = file.sha;
+        plan = normalizePlan(JSON.parse(atob(file.content.replace(/\s/g, ''))));
+        return;
+      } catch (e) {
+        if (e.status === 401) disconnectGithub();
+        toast(`Couldn’t read the bot plan from GitHub: ${e.message}`, true);
+      }
+    }
+    try {
+      const res = await fetch(`plan.json?t=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) plan = normalizePlan(await res.json());
+    } catch {
+      // No published plan: the bot's default days apply.
+    }
+  }
+
+  async function savePlan(next, message) {
+    const today = parisDate(new Date());
+    const clean = (dates) => [...new Set(dates)].filter((d) => d >= today).sort();
+    const body = { skip: clean(next.skip), add: clean(next.add) };
+    const content = btoa(unescape(encodeURIComponent(`${JSON.stringify(body, null, 2)}\n`)));
+    let res;
+    try {
+      res = await gh('PUT', '/contents/plan.json', { message, content, sha: planSha || undefined });
+    } catch (e) {
+      if (e.status !== 409) throw e;
+      // Changed elsewhere since it was loaded: take the latest version's sha and write again.
+      planSha = (await gh('GET', '/contents/plan.json')).sha;
+      res = await gh('PUT', '/contents/plan.json', { message, content, sha: planSha });
+    }
+    planSha = res.content.sha;
+    plan = body;
+  }
+
+  function disconnectGithub() {
+    github.token = null;
+    planSha = null;
+    githubStore.clear();
+    $('github-btn').textContent = 'Connect GitHub';
+  }
+
   // ---- state ----
   let me = null;
   let sessions = [];
@@ -472,7 +578,7 @@
       list.push(...batch);
       if (batch.length < 200) break;
     }
-    const target = list.filter((b) => b.name?.trim() === SESSION_NAME && !b.canceled);
+    const target = list.filter((b) => SESSION_NAMES.includes(b.name?.trim()) && !b.canceled);
 
     const withPeople = await Promise.all(target.map(async (b) => {
       const people = members(await api('GET', `/clubs/bookings/participants?booking.id=${b.id}&itemsPerPage=200`));
@@ -481,6 +587,7 @@
       return {
         id: b.id,
         iri: b['@id'] || `/clubs/bookings/${b.id}`,
+        name: b.name.trim(),
         start: b.startAt,
         end: b.endAt,
         capacity: b.maxParticipantsCountLimit,
@@ -494,32 +601,40 @@
       };
     }));
 
-    // Bot days the club hasn't put on the calendar yet.
+    // Bot days and planned sessions the club hasn't put on the calendar yet.
     const now = Date.now();
     for (let i = 0; i < WEEKS_SHOWN * 7; i++) {
       const date = addDays(from, i);
       const start = parisToUtc(date, BOT.time);
-      if (!BOT.days.includes(weekday(start)) || start < now) continue;
+      if (!(BOT.days.includes(weekday(start)) || plan.add.includes(date)) || start < now) continue;
       if (withPeople.some((s) => parisDate(s.start) === date)) continue;
       withPeople.push({
         id: `expected-${date}`, start: start.toISOString(), published: false,
+        name: BOT.days.includes(weekday(start)) ? BOT.name : null,
         opensAt: new Date(start.getTime() - BOT.openDaysBefore * DAY_MS).toISOString(),
       });
     }
     return withPeople.sort((a, b) => a.start.localeCompare(b.start));
   }
 
-  const isBotSlot = (s) => BOT.days.includes(weekday(s.start)) && hm(s.start) === BOT.time;
+  // Mirrors isPlanned in doinsport.mjs.
+  const isBotDefault = (s) => s.name === BOT.name && BOT.days.includes(weekday(s.start)) && hm(s.start) === BOT.time;
+  const isBotSlot = (s) => plan.add.includes(parisDate(s.start)) || (isBotDefault(s) && !plan.skip.includes(parisDate(s.start)));
   const activeMine = (s) => s.mine && !s.mine.canceled && !s.mine.inQueue;
   const bookedInWeek = (key) => sessions.filter((s) => weekStart(s.start) === key && activeMine(s)).length;
+  const notOpenYet = (s) => new Date(s.opensAt) > Date.now();
+  // Sessions the bot will still try to book that week (not open yet, not already yours).
+  const pendingBotInWeek = (key) => sessions.filter((s) => weekStart(s.start) === key && isBotSlot(s) && notOpenYet(s) && !s.mine).length;
+  const isBeginners = (s) => /débutant/i.test(s.name || '');
 
   function statusOf(s) {
     const now = Date.now();
     if (new Date(s.start) < now) return activeMine(s) ? 'played' : 'skipped';
     if (s.mine && !s.mine.canceled) return s.mine.inQueue ? 'waitlist' : 'booked';
     if (s.mine?.canceled) return 'cancelled';
+    if (notOpenYet(s) && isBotDefault(s) && !isBotSlot(s)) return 'planskip';
     if (!s.published) return 'unpublished';
-    if (new Date(s.opensAt) > now) return isBotSlot(s) && bookedInWeek(weekStart(s.start)) < BOT.maxPerWeek ? 'upcoming' : 'notopen';
+    if (notOpenYet(s)) return isBotSlot(s) && bookedInWeek(weekStart(s.start)) < BOT.maxPerWeek ? 'upcoming' : 'notopen';
     if (isBotSlot(s) && bookedInWeek(weekStart(s.start)) < BOT.maxPerWeek) return 'missed';
     return 'available';
   }
@@ -527,7 +642,7 @@
   const STATUS_LABEL = {
     booked: 'Booked', waitlist: 'Waiting list', available: 'Open', missed: 'Open, not booked',
     upcoming: 'Bot will book', notopen: 'Not open yet', unpublished: 'Not on calendar yet',
-    played: 'Played', skipped: 'Not booked', cancelled: 'You cancelled',
+    played: 'Played', skipped: 'Not booked', cancelled: 'You cancelled', planskip: 'Skipped this week',
   };
 
   // ---- actions ----
@@ -547,6 +662,65 @@
   async function cancel(s) {
     await api('PUT', s.mine['@id'] || `/clubs/bookings/participants/${s.mine.id}`, { canceled: true });
     return { message: `Cancelled ${longDay(s.start)}` };
+  }
+
+  // Adds or removes the session's date in plan.json so the bot books or skips it.
+  async function togglePlan(s) {
+    const date = parisDate(s.start);
+    const next = { skip: plan.skip.filter((d) => d !== date), add: plan.add.filter((d) => d !== date) };
+    const planned = isBotSlot(s);
+    if (planned && isBotDefault(s)) next.skip.push(date);
+    if (!planned && !isBotDefault(s)) next.add.push(date);
+    const label = `${weekday(s.start)} ${date}`;
+    await savePlan(next, planned ? `Plan: skip ${label}` : `Plan: book ${label}`);
+    return { message: planned ? `The bot will skip ${longDay(s.start)}` : `The bot will book ${longDay(s.start)}` };
+  }
+
+  // Ask for a GitHub token the first time the plan is edited.
+  function connectGithub() {
+    return new Promise((resolve) => {
+      const dialog = $('github-dialog');
+      $('github-error').textContent = '';
+      $('github-token').value = '';
+      const done = (ok) => {
+        dialog.removeEventListener('close', onClose);
+        $('github-form').removeEventListener('submit', onSubmit);
+        resolve(ok);
+      };
+      const onClose = () => done(Boolean(github.token));
+      const onSubmit = async (e) => {
+        e.preventDefault();
+        github.token = $('github-token').value.trim();
+        $('github-save').disabled = true;
+        try {
+          const file = await gh('GET', '/contents/plan.json');
+          githubStore.set(github.token);
+          planSha = file.sha;
+          plan = normalizePlan(JSON.parse(atob(file.content.replace(/\s/g, ''))));
+          $('github-btn').textContent = 'Disconnect GitHub';
+          dialog.close();
+        } catch (err) {
+          github.token = null;
+          $('github-error').textContent = err.status === 401 ? 'GitHub didn’t accept this token.' : err.message;
+        } finally {
+          $('github-save').disabled = false;
+        }
+      };
+      dialog.addEventListener('close', onClose);
+      $('github-form').addEventListener('submit', onSubmit);
+      dialog.showModal();
+    });
+  }
+
+  function planButton(s) {
+    const planned = isBotSlot(s);
+    const b = el('button', 'btn ghost', planned ? 'Skip this week' : isBotDefault(s) ? 'Book it after all' : 'Bot books this');
+    b.type = 'button';
+    b.addEventListener('click', async () => {
+      if (!github.token && !(await connectGithub())) return;
+      runAction(b, togglePlan, s);
+    });
+    return b;
   }
 
   let toastTimer = null;
@@ -625,7 +799,8 @@
     top.append(el('span', 'slot-day', dayDate(s.start)), el('span', 'slot-time', hm(s.start)));
     const row = el('div', 'slot-row');
     row.append(pill(status));
-    if (isBotSlot(s)) row.append(el('span', 'tag', 'Auto'));
+    if (isBotSlot(s) && !['played', 'skipped', 'cancelled'].includes(status)) row.append(el('span', 'tag', 'Auto'));
+    if (isBeginners(s)) row.append(el('span', 'tag', 'Beginners'));
     tile.append(top, row);
 
     if (s.published && s.capacity && !past) tile.append(spots(s));
@@ -648,8 +823,20 @@
       }
       b.addEventListener('click', () => runAction(b, book, s));
       actions.append(b);
-    } else if (status === 'upcoming' || status === 'unpublished' || status === 'notopen') {
+    } else if (['upcoming', 'unpublished', 'notopen', 'planskip'].includes(status)) {
       tile.append(el('p', 'slot-note', `Opens ${when(s.opensAt)}`));
+      // Adding needs a free place in the week (skip another day first) and time for the bot to pick it up.
+      const key = weekStart(s.start);
+      if (isBotSlot(s)) {
+        actions.append(planButton(s));
+      } else if (bookedInWeek(key) + pendingBotInWeek(key) < BOT.maxPerWeek) {
+        const b = planButton(s);
+        if (new Date(s.opensAt) - Date.now() < BOT.lookaheadMin * 60000) {
+          b.disabled = true;
+          tile.append(el('p', 'slot-note', 'Opens too soon for the bot. Book it once it opens.'));
+        }
+        actions.append(b);
+      }
     }
     if (actions.childNodes.length) tile.append(actions);
     return tile;
@@ -672,9 +859,10 @@
       );
       const quota = el('div', 'quota');
       const booked = bookedInWeek(key);
-      for (let i = 0; i < BOT.maxPerWeek; i++) quota.append(el('i', i < booked ? 'on' : ''));
+      const pending = pendingBotInWeek(key);
+      for (let i = 0; i < BOT.maxPerWeek; i++) quota.append(el('i', i < booked ? 'on' : i < booked + pending ? 'plan' : ''));
       quota.append(el('small', null, `${booked}/${BOT.maxPerWeek}`));
-      quota.setAttribute('aria-label', `${booked} of ${BOT.maxPerWeek} sessions booked this week`);
+      quota.setAttribute('aria-label', `${booked} of ${BOT.maxPerWeek} sessions booked this week${pending ? `, ${pending} more planned for the bot` : ''}`);
       name.append(quota);
 
       const slots = el('div', 'slots');
@@ -709,7 +897,7 @@
     board.append(el('span', 'label', 'Next bot action'));
     if (!next) {
       board.append(el('h2', null, 'Nothing for the bot to book'),
-        el('p', null, 'Every Monday and Wednesday in the next weeks is booked, cancelled or covered by your weekly limit.'));
+        el('p', null, 'Every planned session in the next weeks is booked, skipped or covered by your weekly limit.'));
       return;
     }
     const opens = new Date(next.opensAt);
@@ -750,7 +938,7 @@
     card.replaceChildren(el('span', 'label', 'Your next session'));
     const next = sessions.find((s) => ['booked', 'waitlist'].includes(statusOf(s)));
     if (!next) {
-      card.append(el('p', 'next-date', 'None booked'), el('p', 'subtitle', 'Book a session below, or let the bot grab Monday and Wednesday.'));
+      card.append(el('p', 'next-date', 'None booked'), el('p', 'subtitle', 'Book a session below, or let the bot grab its planned days.'));
       return;
     }
     card.append(el('p', 'next-date', longDay(next.start)), pill(statusOf(next)));
@@ -836,6 +1024,7 @@
     try {
       me = me || await api('GET', '/me');
       $('who').textContent = [me.firstName, me.lastName].filter(Boolean).join(' ');
+      await loadPlan();
       sessions = await loadSessions();
       loadedAt = new Date();
       render();
@@ -887,6 +1076,12 @@
 
   $('logout-btn').addEventListener('click', () => signOut());
   $('refresh-btn').addEventListener('click', () => { refresh(); loadRuns(); });
+  $('github-btn').addEventListener('click', async () => {
+    if (github.token) disconnectGithub();
+    else if (await connectGithub()) refresh();
+  });
+  $('github-cancel').addEventListener('click', () => $('github-dialog').close());
+  if (github.token) $('github-btn').textContent = 'Disconnect GitHub';
 
   // Keep the page current while it's open.
   setInterval(() => { if (!document.hidden && auth.token) refresh(); }, 5 * 60 * 1000);

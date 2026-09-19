@@ -29,7 +29,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: mkdir -p _site && cp dashboard/index.html _site/ && node status.mjs _site/runs.json
+      - run: mkdir -p _site && cp dashboard/index.html plan.json _site/ && node status.mjs _site/runs.json
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - uses: actions/upload-pages-artifact@v3

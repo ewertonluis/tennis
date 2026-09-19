@@ -2,14 +2,16 @@
 // Auto-booking for Mouratoglou Country Club (Doinsport) group sessions.
 //
 // Usage:
-//   node book.mjs                  scheduled mode: book target sessions whose registration opens soon
-//   node book.mjs --date 2026-09-21  book the target session on that date right now
-//   node book.mjs --list           list upcoming target sessions (no login needed)
+//   node book.mjs                  scheduled mode: book planned sessions whose registration opens soon
+//   node book.mjs --date 2026-09-21  book the session on that date right now
+//   node book.mjs --list           list upcoming sessions and which ones the bot will book (no login needed)
+//
+// The bot books config.days at config.time, adjusted week by week by plan.json (see loadPlan).
 //   add --dry-run to do everything except the actual registration
 
 import {
-  DAY_MS, bookedInWeek, config, findTargetSessions, http, isoDate, log, login, myParticipation, paris,
-  registrationOpensAt, sleep,
+  DAY_MS, bookedInWeek, config, findSessions, http, isoDate, isPlanned, loadPlan, log, login, myParticipation,
+  paris, registrationOpensAt, sleep,
 } from './doinsport.mjs';
 
 const env = process.env;
@@ -84,6 +86,10 @@ async function handle(booking, me, { waitForOpening }) {
   if (waitForOpening && opensAt > Date.now()) {
     log(`${label}: registration opens ${opensAt.toISOString()}, waiting`);
     await sleep(opensAt - Date.now() - 60_000);
+    if (!isPlanned(booking, await loadPlan())) {
+      outcome('notice', `Skipped, removed from your plan: ${label}`);
+      return;
+    }
     me = await login(); // fresh token right before opening
     await sleep(opensAt - Date.now() + 200);
   }
@@ -95,9 +101,11 @@ async function main() {
   const today = isoDate(Date.now());
 
   if (LIST) {
-    for (const b of await findTargetSessions(today, isoDate(Date.now() + 21 * DAY_MS))) {
+    const plan = await loadPlan();
+    for (const b of await findSessions(today, isoDate(Date.now() + 21 * DAY_MS))) {
       const p = paris(new Date(b.startAt));
-      log(`${p.day} ${p.date} ${p.time}  ${b.name}  (id ${b.id}, max ${b.maxParticipantsCountLimit})`);
+      const bot = isPlanned(b, plan) ? 'bot' : '   ';
+      log(`${bot} ${p.day} ${p.date} ${p.time}  ${b.name}  (id ${b.id}, max ${b.maxParticipantsCountLimit})`);
     }
     return;
   }
@@ -105,20 +113,22 @@ async function main() {
   const me = await login();
 
   if (DATE) {
-    const [booking] = await findTargetSessions(DATE, isoDate(new Date(DATE).getTime() + DAY_MS));
-    if (!booking) throw new Error(`No ${config.name} session found on ${DATE}`);
+    const [booking] = (await findSessions(DATE, isoDate(new Date(DATE).getTime() + DAY_MS)))
+      .filter((b) => paris(new Date(b.startAt)).date === DATE);
+    if (!booking) throw new Error(`No ${config.names.join(' / ')} session found on ${DATE}`);
     await handle(booking, me, { waitForOpening: false });
     return;
   }
 
-  // Scheduled mode: sessions whose registration opens between now-RETRY and now+LOOKAHEAD.
-  const sessions = await findTargetSessions(today, isoDate(Date.now() + 15 * DAY_MS));
+  // Scheduled mode: planned sessions whose registration opens between now-RETRY and now+LOOKAHEAD.
+  const plan = await loadPlan();
+  const sessions = (await findSessions(today, isoDate(Date.now() + 15 * DAY_MS))).filter((b) => isPlanned(b, plan));
   const due = sessions.filter((b) => {
     const opensAt = registrationOpensAt(b).getTime();
     return opensAt <= Date.now() + LOOKAHEAD_MIN * 60_000 && opensAt >= Date.now() - RETRY_FOR_SEC * 1000;
   });
   if (!due.length) {
-    log('No target session opens for registration in the next', LOOKAHEAD_MIN, 'minutes');
+    log('No planned session opens for registration in the next', LOOKAHEAD_MIN, 'minutes');
     return;
   }
   for (const b of due) await handle(b, me, { waitForOpening: true });

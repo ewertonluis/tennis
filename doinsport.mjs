@@ -1,5 +1,7 @@
 // Shared Doinsport API helpers for Mouratoglou Country Club.
 
+import { readFileSync } from 'node:fs';
+
 export const API = 'https://api-blockout.doinsport.club';
 export const CLUB_ID = '652b9a65-0756-4f08-9b30-e20130aeea42';
 const WHITE_LABEL_ID = '472ed15e-b862-4ffd-b81e-1fa8a89b6148';
@@ -10,6 +12,8 @@ export const config = {
   email: env.DOIN_EMAIL,
   password: env.DOIN_PASSWORD,
   name: env.TARGET_NAME || 'Permanence adultes',
+  // Every session that counts: shown on the dashboard, bookable through the plan, counted in the weekly limit.
+  names: (env.SESSION_NAMES || 'Permanence adultes,Permanence adultes débutants').split(',').map((n) => n.trim()),
   days: (env.TARGET_DAYS || 'Mon,Wed').split(',').map((d) => d.trim()),
   time: env.TARGET_TIME || '19:30',
   // Used only when the API does not expose the registration opening delay.
@@ -91,8 +95,8 @@ export function parisWeekStart(date) {
   return isoDate(d);
 }
 
-// Sessions with the target name; only the configured days and time unless anyDay is set.
-export async function findTargetSessions(fromDate, toDate, { anyDay = false } = {}) {
+// All sessions with one of the configured names.
+export async function findSessions(fromDate, toDate) {
   const sessions = [];
   for (let page = 1; ; page++) {
     const q = `activityType=lesson&club.id=${CLUB_ID}&startAt[after]=${fromDate}&startAt[before]=${toDate}` +
@@ -101,11 +105,37 @@ export async function findTargetSessions(fromDate, toDate, { anyDay = false } = 
     sessions.push(...batch);
     if (batch.length < 200) break;
   }
-  return sessions.filter((b) => {
-    const p = paris(new Date(b.startAt));
-    if (b.name?.trim() !== config.name || b.canceled) return false;
-    return anyDay || (config.days.includes(p.day) && p.time === config.time);
-  });
+  return sessions.filter((b) => config.names.includes(b.name?.trim()) && !b.canceled);
+}
+
+// Week-by-week changes to what the bot books, edited from the dashboard:
+// { "skip": ["2026-09-28"], "add": ["2026-10-01"] } (Paris dates).
+// In GitHub Actions the latest committed version is fetched, so edits made while a run waits still count.
+export async function loadPlan() {
+  let plan;
+  if (env.GITHUB_TOKEN && env.GITHUB_REPOSITORY) {
+    try {
+      const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPOSITORY}/contents/plan.json`, {
+        headers: { Accept: 'application/vnd.github.raw+json', Authorization: `Bearer ${env.GITHUB_TOKEN}` },
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      plan = await res.json();
+    } catch (e) {
+      log(`Could not fetch the latest plan (${e.message}), using the checked-out copy`);
+    }
+  }
+  if (!plan) {
+    try { plan = JSON.parse(readFileSync(new URL('./plan.json', import.meta.url), 'utf8')); } catch { plan = {}; }
+  }
+  return { skip: plan.skip ?? [], add: plan.add ?? [] };
+}
+
+// Whether the bot should book this session: the usual day and time unless skipped, or added for that week.
+export function isPlanned(booking, plan) {
+  const p = paris(new Date(booking.startAt));
+  if (plan.add.includes(p.date)) return true;
+  return booking.name?.trim() === config.name && config.days.includes(p.day) && p.time === config.time
+    && !plan.skip.includes(p.date);
 }
 
 export function registrationOpensAt(booking) {
@@ -129,7 +159,7 @@ export async function myParticipation(booking, me) {
 export async function bookedInWeek(date, me) {
   const from = parisWeekStart(date);
   const to = isoDate(new Date(`${from}T12:00:00Z`).getTime() + 7 * DAY_MS);
-  const sessions = await findTargetSessions(from, to, { anyDay: true });
+  const sessions = await findSessions(from, to);
   const mine = await Promise.all(sessions.map((b) => myParticipation(b, me)));
   return mine.filter(isActive).length;
 }
