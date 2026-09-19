@@ -989,8 +989,9 @@
     try {
       const res = await fetch(`runs.json?t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) return;
-      const { runs } = await res.json();
-      if (!runs?.length) return;
+      const since = Date.now() - 8 * 24 * 3600 * 1000; // one registration cycle
+      const runs = ((await res.json()).runs || []).filter((r) => new Date(r.startedAt) >= since);
+      if (!runs.length) return;
       const list = $('runs');
       list.replaceChildren();
       $('actions-link').href = runs[0].url.replace(/\/runs\/\d+.*$/, '/workflows/book.yml');

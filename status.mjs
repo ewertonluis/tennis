@@ -24,7 +24,9 @@ async function gh(path) {
 async function main() {
   const repo = env.GITHUB_REPOSITORY;
   if (!repo) throw new Error('GITHUB_REPOSITORY must be set (owner/name)');
-  const { workflow_runs: runs } = await gh(`/repos/${repo}/actions/workflows/book.yml/runs?per_page=15`);
+  // Last 8 days: one full registration cycle.
+  const since = new Date(Date.now() - 8 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  const { workflow_runs: runs } = await gh(`/repos/${repo}/actions/workflows/book.yml/runs?per_page=100&created=>=${since}`);
   const result = await Promise.all(runs.map(async (r) => {
     const outcomes = [];
     try {

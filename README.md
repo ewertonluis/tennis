@@ -11,6 +11,21 @@ the moment registration opens, using GitHub Actions.
 
 Failed runs trigger GitHub's email notification.
 
+## Exact-time trigger
+GitHub's own schedule has started runs 2-3.5 hours late, so the bot is started from outside at a fixed time,
+with GitHub's schedule (12:05/13:05 UTC, then waiting up to 5.5 hours) as a backup.
+
+1. GitHub → Settings → Developer settings → Fine-grained tokens → new token: this repository only,
+   permission **Actions: read and write**.
+2. On [cron-job.org](https://cron-job.org) (free), create a job:
+   - URL: `https://api.github.com/repos/ewertonluis/tennis/actions/workflows/book.yml/dispatches`
+   - Schedule: every day at **19:15**, time zone **Europe/Paris**
+   - Advanced → method **POST**, headers `Authorization: Bearer <token>`, `Accept: application/vnd.github+json`,
+     body `{"ref":"main","inputs":{"dry_run":"false"}}` (without it the run defaults to a dry run)
+3. Use "Test run": a new **Manual** run should appear in Actions within seconds.
+
+If the backup run is already waiting for that opening, the triggered run queues behind it and finds you registered.
+
 ## Dashboard
 https://ewertonluis.github.io/tennis/ — sign in with your club (Doinsport) account.
 
@@ -30,7 +45,7 @@ The **Dashboard** workflow publishes the page and `runs.json` (bot activity) eve
 { "skip": ["2026-09-28"], "add": ["2026-10-01"] }
 ```
 The bot reads it again right before registering, so a skip still counts if it lands after the run has started.
-An addition has to be saved at least 90 minutes before its registration opens.
+An addition has to be saved before the 19:15 trigger on the day its registration opens.
 
 ## Settings (environment variables)
 | Variable | Default |

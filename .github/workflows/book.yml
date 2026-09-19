@@ -2,10 +2,11 @@ name: Book tennis
 
 on:
   schedule:
-    # Registration opens at 19:30 Paris time. GitHub cron is UTC and often runs late,
-    # so start ~70 min early; the script waits for the exact opening time.
-    - cron: '20 16 * * *' # summer (CEST): opening = 17:30 UTC
-    - cron: '20 17 * * *' # winter (CET):  opening = 18:30 UTC
+    # Backup for the external trigger (see README). Registration opens at 19:30 Paris time.
+    # GitHub cron is UTC and has started runs 2-3.5 hours late, so start ~5.5 hours early;
+    # the script waits for the exact opening time.
+    - cron: '5 12 * * *' # summer (CEST): opening = 17:30 UTC
+    - cron: '5 13 * * *' # winter (CET):  opening = 18:30 UTC
   workflow_dispatch:
     inputs:
       date:
@@ -26,7 +27,7 @@ concurrency:
 jobs:
   book:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 360 # GitHub's maximum
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,3 +40,4 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }} # re-reads plan.json right before registering
           BOOK_DATE: ${{ inputs.date }}
           DRY_RUN: ${{ inputs.dry_run }}
+          LOOKAHEAD_MINUTES: 330 # must fit inside timeout-minutes

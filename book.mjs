@@ -91,6 +91,11 @@ async function handle(booking, me, { waitForOpening }) {
       return;
     }
     me = await login(); // fresh token right before opening
+    const bookedNow = await bookedInWeek(new Date(booking.startAt), me); // may have changed while waiting
+    if (bookedNow >= config.maxPerWeek) {
+      outcome('notice', `Skipped, you already have ${bookedNow} sessions that week: ${label}`);
+      return;
+    }
     await sleep(opensAt - Date.now() + 200);
   }
   log(`${label}: registering`);
