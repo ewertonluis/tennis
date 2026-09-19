@@ -154,6 +154,11 @@
     border-radius: 10px; padding: 12px 16px;
   }
   .alert strong { color: var(--alert); }
+  .connect {
+    display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px;
+  }
+  .connect p { margin: 0; color: var(--ink-2); }
 
   /* Sessions by week */
   section { display: grid; gap: 14px; }
@@ -315,6 +320,10 @@
     </header>
 
     <div class="alert" id="alert" hidden></div>
+    <div class="connect" id="connect-github" hidden>
+      <p>Connect GitHub to skip a week or change which session the bot books.</p>
+      <button class="btn ghost" type="button" id="connect-github-btn">Connect GitHub</button>
+    </div>
 
     <div class="top">
       <div class="board" id="board"></div>
@@ -343,9 +352,9 @@
     <h2 id="github-h">Connect GitHub to change the plan</h2>
     <p>The bot reads its week-by-week plan from <span class="mono">plan.json</span> in the repository. To edit it from here, paste a GitHub token once:</p>
     <ol>
-      <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a fine-grained token</a></li>
-      <li>Repository access: only <span class="mono">ewertonluis/tennis</span></li>
-      <li>Permissions: Contents → Read and write</li>
+      <li><a href="https://github.com/settings/personal-access-tokens/new?name=tennis-dashboard&amp;description=Court+Time+dashboard+edits+plan.json&amp;target_name=ewertonluis&amp;expires_in=364&amp;contents=write" target="_blank" rel="noopener">Create a fine-grained token</a></li>
+      <li>Repository access: <em>Only select repositories</em> → <span class="mono">ewertonluis/tennis</span></li>
+      <li>Check that Contents is set to Read and write, then Generate token</li>
     </ol>
     <div class="field">
       <label for="github-token">Token</label>
@@ -555,7 +564,12 @@
     github.token = null;
     planSha = null;
     githubStore.clear();
-    $('github-btn').textContent = 'Connect GitHub';
+    syncGithub();
+  }
+
+  function syncGithub() {
+    $('github-btn').textContent = github.token ? 'Disconnect GitHub' : 'Connect GitHub';
+    $('connect-github').hidden = Boolean(github.token);
   }
 
   // ---- state ----
@@ -697,7 +711,7 @@
           githubStore.set(github.token);
           planSha = file.sha;
           plan = normalizePlan(JSON.parse(atob(file.content.replace(/\s/g, ''))));
-          $('github-btn').textContent = 'Disconnect GitHub';
+          syncGithub();
           dialog.close();
         } catch (err) {
           github.token = null;
@@ -1098,7 +1112,10 @@
     else if (await connectGithub()) refresh();
   });
   $('github-cancel').addEventListener('click', () => $('github-dialog').close());
-  if (github.token) $('github-btn').textContent = 'Disconnect GitHub';
+  $('connect-github-btn').addEventListener('click', async () => {
+    if (await connectGithub()) refresh();
+  });
+  syncGithub();
 
   // Keep the page current while it's open.
   setInterval(() => { if (!document.hidden && auth.token) refresh(); }, 5 * 60 * 1000);
