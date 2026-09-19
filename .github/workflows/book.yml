@@ -1,4 +1,5 @@
 name: Book tennis
+run-name: ${{ inputs.source == 'cron' && 'Book tennis (scheduled)' || 'Book tennis' }}
 
 on:
   schedule:
@@ -16,9 +17,13 @@ on:
         description: 'Dry run (log in and check, but do not book)'
         type: boolean
         default: true
+      source:
+        description: 'Set to "cron" by the external scheduler (shows the run as Scheduled)'
+        required: false
 
 permissions:
   contents: read
+  actions: write # starts the Dashboard workflow when the bot did something
 
 concurrency:
   group: book-tennis
@@ -33,11 +38,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node book.mjs
+      - id: book
+        run: node book.mjs
         env:
           DOIN_EMAIL: ${{ secrets.DOIN_EMAIL }}
           DOIN_PASSWORD: ${{ secrets.DOIN_PASSWORD }}
           GITHUB_TOKEN: ${{ github.token }} # re-reads plan.json right before registering
           BOOK_DATE: ${{ inputs.date }}
           DRY_RUN: ${{ inputs.dry_run }}
-          LOOKAHEAD_MINUTES: 330 # must fit inside timeout-minutes
+          # GitHub's own schedule starts early and waits; the external checks run every 15 minutes.
+          LOOKAHEAD_MINUTES: ${{ github.event_name == 'schedule' && 330 || 20 }} # must fit inside timeout-minutes
+      - if: always() && (steps.book.outputs.acted == 'true' || failure())
+        run: gh workflow run dashboard.yml --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}

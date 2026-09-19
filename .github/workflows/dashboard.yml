@@ -2,10 +2,7 @@ name: Dashboard
 
 on:
   schedule:
-    - cron: '45 */2 * * *' # every 2 hours
-  workflow_run:
-    workflows: ['Book tennis']
-    types: [completed]
+    - cron: '45 */2 * * *' # every 2 hours; Book tennis also starts it when it books or fails
   push:
     branches: [main]
   workflow_dispatch:

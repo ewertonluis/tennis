@@ -9,6 +9,7 @@
 // The bot books config.days at config.time, adjusted week by week by plan.json (see loadPlan).
 //   add --dry-run to do everything except the actual registration
 
+import { appendFileSync } from 'node:fs';
 import {
   DAY_MS, bookedInWeek, config, findSessions, http, isoDate, isPlanned, loadPlan, log, login, myParticipation,
   paris, registrationOpensAt, sleep,
@@ -29,6 +30,7 @@ const DATE = args.includes('--date') ? args[args.indexOf('--date') + 1] : env.BO
 function outcome(level, message) {
   log(message);
   if (env.GITHUB_ACTIONS) console.log(`::${level} title=Outcome::${message}`);
+  if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, 'acted=true\n');
 }
 
 async function register(booking, me, label) {
@@ -125,9 +127,17 @@ async function main() {
     return;
   }
 
-  // Scheduled mode: planned sessions whose registration opens between now-RETRY and now+LOOKAHEAD.
+  // Scheduled mode.
   const plan = await loadPlan();
   const sessions = (await findSessions(today, isoDate(Date.now() + 15 * DAY_MS))).filter((b) => isPlanned(b, plan));
+
+  // Catch-up: registration already open, e.g. the club created the session late, or it was added to the plan late.
+  // Silent unless it books, since it runs every few minutes.
+  const open = sessions.filter((b) => registrationOpensAt(b).getTime() < Date.now() - RETRY_FOR_SEC * 1000
+    && new Date(b.startAt) > Date.now());
+  for (const b of open) await catchUp(b, me);
+
+  // Planned sessions whose registration opens between now-RETRY and now+LOOKAHEAD: wait for the exact moment.
   const due = sessions.filter((b) => {
     const opensAt = registrationOpensAt(b).getTime();
     return opensAt <= Date.now() + LOOKAHEAD_MIN * 60_000 && opensAt >= Date.now() - RETRY_FOR_SEC * 1000;
@@ -137,6 +147,20 @@ async function main() {
     return;
   }
   for (const b of due) await handle(b, me, { waitForOpening: true });
+}
+
+async function catchUp(booking, me) {
+  const p = paris(new Date(booking.startAt));
+  const label = `${booking.name} ${p.day} ${p.date} ${p.time}`;
+  if (await myParticipation(booking, me)) return log(`${label}: already registered or cancelled by you`);
+  const booked = await bookedInWeek(new Date(booking.startAt), me);
+  if (booked >= config.maxPerWeek) return log(`${label}: you already have ${booked} sessions that week`);
+  log(`${label}: registration is already open, registering`);
+  try {
+    await bookWithRetry(booking, me, label, new Date());
+  } catch (e) {
+    outcome('warning', e.message); // retried on the next check, so no failure email every few minutes
+  }
 }
 
 main().catch((e) => {

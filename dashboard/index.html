@@ -989,12 +989,28 @@
     try {
       const res = await fetch(`runs.json?t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) return;
+      // runs.json lists only runs that did something; checks with nothing to book are summed up in lastCheck.
+      const data = await res.json();
       const since = Date.now() - 8 * 24 * 3600 * 1000; // one registration cycle
-      const runs = ((await res.json()).runs || []).filter((r) => new Date(r.startedAt) >= since);
-      if (!runs.length) return;
+      const runs = (data.runs || []).filter((r) => new Date(r.startedAt) >= since);
+      if (!runs.length && !data.lastCheck) return;
       const list = $('runs');
       list.replaceChildren();
-      $('actions-link').href = runs[0].url.replace(/\/runs\/\d+.*$/, '/workflows/book.yml');
+      $('actions-link').href = data.allRunsUrl || runs[0].url.replace(/\/runs\/\d+.*$/, '/workflows/book.yml');
+      if (data.lastCheck) {
+        const li = el('li', 'run');
+        const main = el('div', 'run-main');
+        main.append(
+          el('span', 'run-title', `Last check ${when(data.lastCheck.startedAt)}`),
+          el('span', 'run-sub', runs.length ? 'Checks every 15 minutes' : 'Checks every 15 minutes · nothing booked in the past 8 days'),
+        );
+        const link = el('a', null, 'Log');
+        link.href = data.lastCheck.url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        li.append(el('span', 'run-mark success'), main, link);
+        list.append(li);
+      }
       for (const run of runs) {
         const sum = runSummary(run);
         const li = el('li', 'run');
